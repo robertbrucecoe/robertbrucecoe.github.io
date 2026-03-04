@@ -1,0 +1,546 @@
+<<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Robert Coe — Resume</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,300&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0d1b2a;
+    --slate: #1c2f45;
+    --gold: #c49a3c;
+    --gold-light: #e8c56b;
+    --cream: #f5f0e8;
+    --warm-white: #faf8f4;
+    --muted: #8a9db5;
+    --rule: #c49a3c44;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--warm-white);
+    color: var(--navy);
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-weight: 300;
+    line-height: 1.6;
+  }
+
+  /* ─── HEADER ─── */
+  .header {
+    background: var(--navy);
+    color: var(--cream);
+    padding: 56px 72px 48px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .header::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--gold), var(--gold-light), var(--gold));
+  }
+
+  .header::after {
+    content: '';
+    position: absolute;
+    top: -80px; right: -80px;
+    width: 320px; height: 320px;
+    border: 1px solid rgba(196, 154, 60, 0.12);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  .header-inner {
+    max-width: 900px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 40px;
+    align-items: end;
+  }
+
+  .name {
+    font-family: 'Playfair Display', serif;
+    font-size: 52px;
+    font-weight: 900;
+    letter-spacing: -1px;
+    line-height: 1.05;
+    animation: fadeUp 0.7s ease both;
+  }
+
+  .title-line {
+    font-family: 'Courier Prime', monospace;
+    font-size: 11px;
+    letter-spacing: 3.5px;
+    text-transform: uppercase;
+    color: var(--gold-light);
+    margin-top: 10px;
+    animation: fadeUp 0.7s 0.1s ease both;
+  }
+
+  .contact-block {
+    text-align: right;
+    font-size: 12.5px;
+    line-height: 2;
+    color: var(--muted);
+    animation: fadeUp 0.7s 0.15s ease both;
+  }
+
+  .contact-block a {
+    color: var(--gold-light);
+    text-decoration: none;
+  }
+
+  /* ─── MAIN LAYOUT ─── */
+  .body-wrap {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 72px 60px;
+  }
+
+  /* ─── SUMMARY BAR ─── */
+  .summary {
+    background: var(--cream);
+    border-left: 3px solid var(--gold);
+    padding: 24px 28px;
+    margin: 36px 0 40px;
+    font-size: 15px;
+    font-style: italic;
+    color: var(--slate);
+    animation: fadeUp 0.6s 0.2s ease both;
+    line-height: 1.75;
+  }
+
+  /* ─── SECTION HEADERS ─── */
+  .section {
+    margin-bottom: 36px;
+    animation: fadeUp 0.6s 0.25s ease both;
+  }
+
+  .section-title {
+    font-family: 'Courier Prime', monospace;
+    font-size: 10px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--gold);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--rule);
+  }
+
+  /* ─── EXPERIENCE ─── */
+  .entry {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    margin-bottom: 24px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid #e8e2d8;
+  }
+
+  .entry:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+    margin-bottom: 0;
+  }
+
+  .entry-role {
+    font-family: 'Playfair Display', serif;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--navy);
+  }
+
+  .entry-org {
+    font-size: 13.5px;
+    color: var(--gold);
+    font-weight: 600;
+    margin: 2px 0 8px;
+    font-family: 'Courier Prime', monospace;
+    letter-spacing: 0.5px;
+  }
+
+  .entry-date {
+    font-family: 'Courier Prime', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: var(--muted);
+    text-align: right;
+    white-space: nowrap;
+    padding-top: 4px;
+  }
+
+  .entry ul {
+    list-style: none;
+    padding: 0;
+  }
+
+  .entry li {
+    font-size: 14px;
+    padding-left: 18px;
+    position: relative;
+    margin-bottom: 5px;
+    color: #3a4a5c;
+    line-height: 1.6;
+  }
+
+  .entry li::before {
+    content: '–';
+    position: absolute;
+    left: 0;
+    color: var(--gold);
+    font-weight: 700;
+  }
+
+  /* ─── TWO-COL GRID ─── */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+  }
+
+  /* ─── SKILLS ─── */
+  .skill-group {
+    margin-bottom: 14px;
+  }
+
+  .skill-label {
+    font-family: 'Courier Prime', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 5px;
+  }
+
+  .skill-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .pill {
+    background: var(--cream);
+    border: 1px solid #ddd5c4;
+    color: var(--slate);
+    font-size: 12px;
+    padding: 3px 11px;
+    border-radius: 2px;
+    font-family: 'Source Serif 4', serif;
+    font-weight: 400;
+  }
+
+  /* ─── AWARDS ─── */
+  .award-row {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 10px;
+    font-size: 14px;
+  }
+
+  .award-name {
+    font-weight: 600;
+    color: var(--navy);
+  }
+
+  .award-body {
+    color: var(--muted);
+    font-size: 12.5px;
+  }
+
+  .award-year {
+    font-family: 'Courier Prime', monospace;
+    font-size: 11px;
+    color: var(--gold);
+    margin-left: auto;
+    white-space: nowrap;
+  }
+
+  /* ─── EDUCATION ─── */
+  .edu-entry {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 12px;
+  }
+
+  .edu-degree {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  .edu-school {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* ─── FOOTER ─── */
+  .footer-bar {
+    background: var(--navy);
+    color: var(--muted);
+    text-align: center;
+    font-family: 'Courier Prime', monospace;
+    font-size: 10.5px;
+    letter-spacing: 2px;
+    padding: 16px;
+    margin-top: 40px;
+  }
+
+  /* ─── ANIMATIONS ─── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .section:nth-child(1) { animation-delay: 0.2s; }
+  .section:nth-child(2) { animation-delay: 0.3s; }
+  .section:nth-child(3) { animation-delay: 0.4s; }
+  .section:nth-child(4) { animation-delay: 0.5s; }
+
+  /* ─── PRINT ─── */
+  @media print {
+    body { background: white; }
+    .header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    @page { margin: 0.5in; }
+  }
+
+  @media (max-width: 680px) {
+    .header { padding: 36px 24px 32px; }
+    .header-inner { grid-template-columns: 1fr; }
+    .contact-block { text-align: left; }
+    .name { font-size: 36px; }
+    .body-wrap { padding: 0 24px 40px; }
+    .two-col { grid-template-columns: 1fr; }
+    .entry { grid-template-columns: 1fr; }
+    .entry-date { text-align: left; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════ HEADER ═══════════ -->
+<header class="header">
+  <div class="header-inner">
+    <div>
+      <div class="name">Robert Coe</div>
+      <div class="title-line">Veteran Leader &nbsp;·&nbsp; Business Strategist &nbsp;·&nbsp; Educator</div>
+    </div>
+    <div class="contact-block">
+      Rawlins, Wyoming 82301<br>
+      <a href="tel:13077610922">(307) 761-0922</a><br>
+      <a href="&#109;&#097;&#105;&#108;&#116;&#111;&#058;&#114;&#111;&#098;&#101;&#114;&#116;&#046;&#098;&#114;&#117;&#099;&#101;&#046;&#099;&#111;&#101;&#064;&#103;&#109;&#097;&#105;&#108;&#046;&#099;&#111;&#109;">&#114;&#111;&#098;&#101;&#114;&#116;&#046;&#098;&#114;&#117;&#099;&#101;&#046;&#099;&#111;&#101;&#064;&#103;&#109;&#097;&#105;&#108;&#046;&#099;&#111;&#109;</a><br>
+      <a href="https://www.linkedin.com/in/robertthebruce" target="_blank">linkedin.com/in/robertthebruce</a>
+    </div>
+  </div>
+</header>
+
+<!-- ═══════════ BODY ═══════════ -->
+<main class="body-wrap">
+
+  <!-- SUMMARY -->
+  <blockquote class="summary">
+    A diplomat, educator, corrections officer, quality assurance specialist, and decorated combat veteran with over a decade of military leadership — I build teams that function when it matters, in places where failure is not an option. My leadership is built on servant principles, technical mastery, and an unwavering commitment to the people I serve.
+  </blockquote>
+
+  <!-- EXPERIENCE -->
+  <section class="section">
+    <h2 class="section-title">Professional Experience</h2>
+
+    <div class="entry">
+      <div>
+        <div class="entry-role">Closed Beta Tester (Artillery SME)</div>
+        <div class="entry-org">Eagle Dynamics &nbsp;·&nbsp; DCS World</div>
+        <ul>
+          <li>Conducted quality assurance and regression testing on advanced flight simulation software, documenting issues and verifying resolutions across configurations.</li>
+          <li>Applied understanding of Soviet rotary-wing doctrine and SME-informed system behavior to identify edge cases and validate performance against real-world operational expectations.</li>
+          <li>Trained the development team in unclassified U.S. Army artillery systems and doctrine, enabling realistic AI behavior and accurate simulation of fire direction and battlefield operations.</li>
+          <li>Conducted authorized penetration testing of proprietary AI systems; documented findings for engineering leadership.</li>
+        </ul>
+      </div>
+      <div class="entry-date">May 2023 – Present</div>
+    </div>
+
+    <div class="entry">
+      <div>
+        <div class="entry-role">Resident Assistant</div>
+        <div class="entry-org">University of Wyoming Housing &amp; Residential Life</div>
+        <ul>
+          <li>Served as a live-in leader and mentor for a residential community, fostering an inclusive, safe, and academically supportive environment.</li>
+          <li>Provided conflict mediation, crisis intervention, and peer mentorship; connected residents with appropriate campus resources.</li>
+          <li>Organized community-building programs and educational workshops promoting engagement, personal growth, and cultural awareness.</li>
+        </ul>
+      </div>
+      <div class="entry-date">Dec 2023 – Sep 2024</div>
+    </div>
+
+    <div class="entry">
+      <div>
+        <div class="entry-role">Correctional Officer &amp; Field Training Officer</div>
+        <div class="entry-org">Wyoming Department of Corrections &nbsp;·&nbsp; Wyoming State Penitentiary</div>
+        <ul>
+          <li>Maintained security and order in a high-risk facility overseeing housing unit operations for approximately 600 inmates.</li>
+          <li>Served as a Field Training Officer (FTO), onboarding and mentoring new correctional staff in institutional policy, PREA standards, and safety protocols.</li>
+          <li>Led emergency response operations utilizing crisis intervention, de-escalation, and incident command principles, reducing incident escalation facility-wide.</li>
+          <li>Applied consistent ethical standards regardless of inmate background; provided academic support to an inmate in a GED class that the individual credited years later as transformative.</li>
+        </ul>
+      </div>
+      <div class="entry-date">Jul 2017 – Sep 2023</div>
+    </div>
+
+    <div class="entry">
+      <div>
+        <div class="entry-role">Veterans Service Intern</div>
+        <div class="entry-org">Wyoming Department of Workforce Services &nbsp;·&nbsp; Laramie, WY</div>
+        <ul>
+          <li>Supported veterans in accessing employment resources, training opportunities, and benefits through direct assistance and agency referrals.</li>
+          <li>Assisted in delivering workshops on resume building, job search strategies, and interview preparation tailored to veterans' skill sets.</li>
+          <li>Conducted outreach to local veteran communities to raise awareness of available programs and services.</li>
+        </ul>
+      </div>
+      <div class="entry-date">Dec 2016 – Jul 2017</div>
+    </div>
+
+    <div class="entry">
+      <div>
+        <div class="entry-role">ROK-US Military Liaison</div>
+        <div class="entry-org">United States Army &nbsp;·&nbsp; South Korea</div>
+        <ul>
+          <li>Fostered diplomatic, cultural, and tactical relationships between the Republic of Korea Army and U.S. Military through joint training and community outreach.</li>
+          <li>Designed and directed volunteer English and Spanish language programs at Shinhan University and Dongducheon Foreign Language High School, managing U.S. soldier volunteers as instructors.</li>
+          <li>Directly managed escalation during a live counter-battery incident involving North Korean artillery near the DMZ.</li>
+        </ul>
+      </div>
+      <div class="entry-date">Sep 2015 – Dec 2015</div>
+    </div>
+
+    <div class="entry">
+      <div>
+        <div class="entry-role">Battery Operations Center Chief &amp; Fire Direction Specialist</div>
+        <div class="entry-org">U.S. Army &amp; Colorado Army National Guard &nbsp;·&nbsp; MLRS / HIMARS</div>
+        <ul>
+          <li>Led and instructed personnel in fire direction computation, operating FDS, AFATDS, and MLRS communications systems across multiple deployments.</li>
+          <li>Served as Infantry PSD in Ramadi, Iraq — provided close protection and convoy security for military and civilian leaders in high-threat environments.</li>
+          <li>Stationed at Shindand Airbase, Afghanistan; managed base security against mortar attacks and infiltration attempts.</li>
+          <li>Achieved 1st Place in the Fire Direction Team Competition (2014); received the TAG Outstanding Unit Award during the 2008 DNC counter-riot augmentation.</li>
+          <li>Served as Honor Guardsman, performing Military Funeral Honors across the greater Colorado area.</li>
+          <li>Discharged: Honorable &nbsp;·&nbsp; RE Code: 1 &nbsp;·&nbsp; December 4, 2015</li>
+        </ul>
+      </div>
+      <div class="entry-date">Jan 2005 – Aug 2015</div>
+    </div>
+
+  </section>
+
+  <!-- TWO-COLUMN: EDUCATION + AWARDS -->
+  <div class="two-col">
+
+    <section class="section">
+      <h2 class="section-title">Education</h2>
+      <div class="edu-entry">
+        <div>
+          <div class="edu-degree">B.S. Business Management</div>
+          <div class="edu-school">University of Wyoming &nbsp;·&nbsp; Expected May 2026</div>
+        </div>
+      </div>
+      <div style="margin-top:14px;">
+        <div class="edu-degree" style="font-size:14px;">Ethical Leadership Certification</div>
+        <div class="edu-school">NASBA Center for the Public Trust</div>
+      </div>
+      <div style="margin-top:14px;">
+        <div class="edu-degree" style="font-size:14px;">ICS Supervisor Certification</div>
+        <div class="edu-school">Incident Command System &nbsp;·&nbsp; FEMA</div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title">Honors &amp; Awards</h2>
+      <div class="award-row">
+        <span class="award-name">IBECC Runner-Up</span>
+        <span class="award-body">International Business Ethics Case Competition</span>
+        <span class="award-year">2025</span>
+      </div>
+      <div class="award-row">
+        <span class="award-name">2nd Place — 90-Second Presentation</span>
+        <span class="award-body">IBECC Regional Round</span>
+        <span class="award-year">2025</span>
+      </div>
+      <div class="award-row">
+        <span class="award-name">1st Place — Fire Direction</span>
+        <span class="award-body">U.S. Army Artillery Competition</span>
+        <span class="award-year">2014</span>
+      </div>
+      <div class="award-row">
+        <span class="award-name">TAG Outstanding Unit Award</span>
+        <span class="award-body">Colorado National Guard Augmentation</span>
+        <span class="award-year">2008</span>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- SKILLS -->
+  <section class="section">
+    <h2 class="section-title">Core Competencies</h2>
+    <div class="two-col" style="gap:20px;">
+      <div>
+        <div class="skill-group">
+          <div class="skill-label">Leadership &amp; Management</div>
+          <div class="skill-pills">
+            <span class="pill">Servant Leadership</span>
+            <span class="pill">Team Development</span>
+            <span class="pill">Conflict Resolution</span>
+            <span class="pill">Cross-cultural Communication</span>
+            <span class="pill">Crisis Management</span>
+          </div>
+        </div>
+        <div class="skill-group">
+          <div class="skill-label">Operations</div>
+          <div class="skill-pills">
+            <span class="pill">Project Management</span>
+            <span class="pill">Incident Command (ICS)</span>
+            <span class="pill">QA / Regression Testing</span>
+            <span class="pill">Liaison &amp; Diplomacy</span>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="skill-group">
+          <div class="skill-label">Instruction &amp; Communication</div>
+          <div class="skill-pills">
+            <span class="pill">Curriculum Design</span>
+            <span class="pill">Public Speaking</span>
+            <span class="pill">Mentorship</span>
+            <span class="pill">Technical Writing</span>
+          </div>
+        </div>
+        <div class="skill-group">
+          <div class="skill-label">Domain Knowledge</div>
+          <div class="skill-pills">
+            <span class="pill">Business Ethics</span>
+            <span class="pill">Corrections &amp; Law</span>
+            <span class="pill">ESL Education</span>
+            <span class="pill">Military Systems (HIMARS / M270)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer-bar">
