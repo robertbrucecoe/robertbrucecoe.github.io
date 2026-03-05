@@ -312,7 +312,56 @@
   .section:nth-child(3) { animation-delay: 0.4s; }
   .section:nth-child(4) { animation-delay: 0.5s; }
 
-  /* ─── PRINT ─── */
+  /* ─── ACTION BAR ─── */
+  .action-bar {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 100;
+  }
+
+  .action-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--navy);
+    color: var(--gold-light);
+    border: 1px solid var(--gold);
+    padding: 10px 18px;
+    font-family: 'Courier Prime', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 3px;
+    text-decoration: none;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+    transition: background 0.2s, color 0.2s;
+    white-space: nowrap;
+  }
+
+  .action-btn:hover {
+    background: var(--gold);
+    color: var(--navy);
+  }
+
+  .action-btn svg {
+    width: 14px;
+    height: 14px;
+    fill: currentColor;
+    flex-shrink: 0;
+  }
+
+  @media print {
+    .action-bar { display: none; }
+  }
+
+  @media (max-width: 680px) {
+    .action-bar { bottom: 16px; right: 16px; }
+  }
   @media print {
     body { background: white; }
     .header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -568,3 +617,23 @@
 </main>
 
 <footer class="footer-bar">
+  References &amp; additional materials available upon request &nbsp;·&nbsp; Robert Coe
+</footer>
+
+<div class="action-bar">
+  <button class="action-btn" onclick="window.print()">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 16l-4-4h3V4h2v8h3l-4 4zm-7 2h14v2H5v-2z"/>
+    </svg>
+    Download PDF
+  </button>
+  <a class="action-btn" href="mailto:?subject=Robert%20Coe%20%E2%80%94%20Resume&body=View%20Robert%20Coe%27s%20resume%20here%3A%20https%3A%2F%2Frobertbrucecoe.github.io">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+    </svg>
+    Send to Email
+  </a>
+</div>
+
+</body>
+</html>
