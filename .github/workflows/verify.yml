@@ -1,0 +1,53 @@
+# Continuous verification for the RBC-1 logic module and the page's quality gates.
+# Every push and pull request rebuilds the module from source with the pinned
+# toolchain and runs all six gates; the committed binary must pass the same
+# functional verification as the rebuild. A red X here means the masthead's
+# claims are no longer backed.
+name: verify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  WASI_SDK_VERSION: "33"
+  WASI_SDK_RELEASE: "wasi-sdk-33.0-x86_64-linux"
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache wasi-sdk
+        id: cache-sdk
+        uses: actions/cache@v4
+        with:
+          path: ~/wasi-sdk
+          key: ${{ env.WASI_SDK_RELEASE }}
+
+      - name: Install wasi-sdk ${{ env.WASI_SDK_VERSION }} (pinned)
+        if: steps.cache-sdk.outputs.cache-hit != 'true'
+        run: |
+          curl -sL -o /tmp/wasi-sdk.tar.gz \
+            "https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_SDK_VERSION}/${WASI_SDK_RELEASE}.tar.gz"
+          mkdir -p ~/wasi-sdk
+          tar -xzf /tmp/wasi-sdk.tar.gz -C ~/wasi-sdk --strip-components=1
+
+      - name: Run all gates
+        run: |
+          export WASI_SDK=~/wasi-sdk
+          bash build/build.sh
+
+      - name: Third-party request audit
+        run: |
+          # The page must reference no external origin: no font CDNs, no analytics,
+          # no external scripts. Anchor hrefs to GitHub and LinkedIn are links the
+          # visitor chooses to follow; resources the browser fetches automatically
+          # (src=, link href=, url()) must all be same-origin.
+          ! grep -nE '(src=|<link[^>]*href=)"https?://' index.html \
+            || (echo "External resource reference found in index.html" && exit 1)
+          ! grep -nE "url\((['\"]?)https?://" index.html \
+            || (echo "External url() reference found in index.html" && exit 1)
+          echo "No third-party resource references. The page provides; it does not collect."

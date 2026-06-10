@@ -60,8 +60,11 @@ displayed in the masthead is the live CRC-32 of the canonical record embedded in
 | Environment | `-nostdlib -ffreestanding -fno-exceptions -fno-rtti` |
 | Diagnostics policy (AV Rule 218) | `-Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion -Wshadow -Wold-style-cast -Werror`. Every diagnostic is fatal. |
 | Static analysis | clang-tidy: `clang-analyzer-*`, `bugprone-*`, magic-number, goto, recursion, and function-size checks |
+| Style gate | `build/style_check.js`: measures AV Rules 9 (ASCII), 14 (uppercase suffixes), 41 (line length), 43 (no tabs), 126 (// comments) on every build |
+| Contrast gate | `build/contrast_check.js`: every text/background pair on the page measured against WCAG 2.1 AA (4.5:1) |
 | Memory-safety gate | second module built with `-fsanitize=undefined,bounds -fsanitize-trap=all`; traps on any UB or out-of-bounds access |
-| Verification harness | `build/verify.js` under node; 19 checks, all required to pass, run against both the shipped and the instrumented module |
+| Verification harness | `build/verify.js` under node; all checks required to pass, run against both the shipped and the instrumented module |
+| Continuous verification | `.github/workflows/verify.yml`: every push rebuilds from source with a pinned wasi-sdk, runs all gates, functionally verifies the committed binary, and audits the page for third-party references |
 
 **Note on AV Rule 8.** The rule requires ISO/IEC 14882:2002. The closest mode in a modern
 clang is `-std=c++03`, which is ISO/IEC 14882:2003, the technical corrigendum of the 2002
@@ -77,13 +80,13 @@ throughout the source and are not repeated per rule here.
 |---|---|---|
 | 1, 3 | Functions under 200 LSLOC, cyclomatic complexity 20 or less | Largest function is `run_built_in_test`, four independent if/else blocks |
 | 8 | ISO/IEC 14882:2002 | `-std=c++03`; see note above |
-| 9 | Basic source character set only | All source files are 7-bit ASCII |
-| 14 | Uppercase literal suffixes | All unsigned literals use `U` |
+| 9 | Basic source character set only | All source files are 7-bit ASCII; gated by `style_check.js` |
+| 14 | Uppercase literal suffixes | All unsigned literals use `U`; gated by `style_check.js` |
 | 17–25 | Forbidden library facilities (`errno`, `stdio`, `stdlib`, `time.h`, signals, `setjmp`) | Freestanding build; no library exists to misuse |
 | 26–31 | Pre-processor restricted to include guards and `#include` | Two `#ifndef`/`#define`/`#endif` guard pairs and two `#include` directives are the only directives in the project |
 | 33 | `<filename.h>` include notation | `#include <Std_types.h>`, `#include <Resume_core.h>` with `-I src` |
 | 35 | Include guards in every header | `Std_types.h`, `Resume_core.h` |
-| 41–44 | Line length, one statement per line, no tabs, consistent indentation | Enforced throughout; spaces only |
+| 41–44 | Line length, one statement per line, no tabs, consistent indentation | Rules 41 and 43 gated by `style_check.js`; Rules 42 and 44 by inspection |
 | 45–52 | Identifier naming (underscore separation, lowercase functions and variables, capitalized first word of types, lowercase constants) | `Role_record`, `Bit_condition`, `rb_role_months`, `months_per_year` |
 | 53–56 | File naming and extensions | `Resume_core.h` / `Resume_core.cpp` named for the logical entity |
 | 59–61 | Braces around every block, positioned on their own lines | Allman bracing throughout, including single-statement and empty blocks |
@@ -95,7 +98,7 @@ throughout the source and are not repeated per rule here.
 | 111 | No pointers or references to non-static locals returned | All returns are by value |
 | 113, 114 | Single point of exit, through `return` | Every function uses the single-exit result pattern |
 | 119 | No recursion, direct or indirect | Verified by inspection and by `misc-no-recursion` |
-| 126, 127 | C++ comments only; no commented-out code | Throughout |
+| 126, 127 | C++ comments only; no commented-out code | Rule 126 gated by `style_check.js`; Rule 127 by inspection |
 | 130, 132, 133, 134 | Comment density, declaration comments, file headers, documented assumptions | Throughout |
 | 135 | No identifier hiding | `-Wshadow` is fatal |
 | 136, 142, 143 | Smallest feasible scope, initialization before use | Throughout |
@@ -154,6 +157,16 @@ Memory safety here is established three ways, not asserted.
    capacity, is run against this module; any violation aborts it and fails the build. The
    shipped module is the clean `-O2` build; the instrumented module is a gate.
 
+## Privacy
+
+This site provides information; it does not acquire it. The page makes no request to any
+origin other than its own: fonts are served from this repository, there is no analytics,
+no tracking pixel, no external script, no CDN. A visitor's address is seen only by the
+host that serves the page (GitHub Pages), which is unavoidable for any hosted site. There
+are outbound links (GitHub, LinkedIn), and following one is the visitor's choice; nothing
+on this page phones anywhere on its own. CI enforces this with a third-party reference
+audit on every push.
+
 ## Limitations
 
 This is an honest conformance *effort*, not a certified compliance, and the difference is
@@ -198,6 +211,19 @@ weakened to its honest form throughout the source headers and this document: a c
 effort with one documented deviation, not a certified compliance. The reviewer's verdict
 ("forged metal, not certified steel; the workmanship is real, the stamp is too strong") was
 correct, and the stamp was corrected to match the metal.
+
+**Round 3 (self-audit).** A self-review found five gaps between what was verified and what
+was stated, and closed them: (1) fonts moved from a third-party CDN into this repository,
+so the page now references no external origin at all and a visitor's address is disclosed
+to no one but the host serving the site; (2) continuous verification was added, rebuilding
+the module from source with a pinned toolchain on every push and auditing the page for
+third-party references; (3) the style rules previously asserted by inspection (line length,
+tabs, character set, comment form, literal suffixes) are now measured by a gate on every
+build, and the matrix marks which rows are gated versus inspected; (4) every text color
+pair on the page is now measured against WCAG 2.1 AA by a contrast gate, which required
+darkening the gold used for small text and raising several dim labels; (5) a maintenance
+runbook (MAINTAIN.md) was added so the integrity word and verifier stay in step when the
+record changes.
 
 ## Reproducing the verification
 

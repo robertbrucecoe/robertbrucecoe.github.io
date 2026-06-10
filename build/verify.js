@@ -5,6 +5,12 @@
 
 const fs = require("fs");
 
+// EXPECTED_CRC is the CRC-32 of the canonical record inside src/Resume_core.cpp.
+// If you edit that record (new role, new dates), this value must change with it:
+// run the build, read the actual CRC from the failure message, update this line,
+// and run the build again. See MAINTAIN.md for the full procedure.
+const EXPECTED_CRC = "0x5A75BE76";
+
 const wasmPath = process.argv[2] || "resume_core.wasm";
 let failures = 0;
 
@@ -32,7 +38,7 @@ WebAssembly.instantiate(fs.readFileSync(wasmPath)).then(({ instance }) => {
   // Initialize with a fixed date so every check below is deterministic.
   const bit = e.rb_init(2026, 6);
   check("BIT status (0 = nominal)", bit, 0);
-  check("CRC-32 integrity word", crcHex(e), "0x5A75BE76");
+  check("CRC-32 integrity word", crcHex(e), EXPECTED_CRC);
   check("CRC octet out-of-range (low) is 0", e.rb_data_crc_octet(-1), 0);
   check("CRC octet out-of-range (high) is 0", e.rb_data_crc_octet(99), 0);
 

@@ -38,17 +38,25 @@ $srcFile = Join-Path $root "src\Resume_core.cpp"
 $incDir  = Join-Path $root "src"
 $wasmOut = Join-Path $root "resume_core.wasm"
 
-Write-Host "[1/4] Compiling shipped module (ISO 14882 C++03, freestanding wasm32, all diagnostics fatal)..."
+Write-Host "[1/6] Compiling shipped module (ISO 14882 C++03, freestanding wasm32, all diagnostics fatal)..."
 & $clang @commonFlags -O2 -I $incDir "-Wl,--no-entry" @exportFlags -o $wasmOut $srcFile
 if ($LASTEXITCODE -ne 0) { throw "Compilation failed." }
 
-Write-Host "[2/4] Static analysis (clang-tidy)..."
+Write-Host "[2/6] Style gate (AV Rules 9, 14, 41, 43, 126)..."
+node (Join-Path $PSScriptRoot "style_check.js")
+if ($LASTEXITCODE -ne 0) { throw "Style gate reported violations." }
+
+Write-Host "[3/6] Contrast gate (WCAG 2.1 AA)..."
+node (Join-Path $PSScriptRoot "contrast_check.js")
+if ($LASTEXITCODE -ne 0) { throw "Contrast gate reported failures." }
+
+Write-Host "[4/6] Static analysis (clang-tidy)..."
 & $tidy $srcFile `
   -checks="clang-analyzer-*,bugprone-*,cppcoreguidelines-avoid-goto,cppcoreguidelines-avoid-magic-numbers,readability-function-size,readability-function-cognitive-complexity,misc-no-recursion" `
   -quiet `
   -- --target=wasm32 -std=c++03 -nostdlib -ffreestanding -fno-exceptions -fno-rtti -I $incDir
 
-Write-Host "[3/4] Memory-safety build (UBSan + bounds, trap-on-violation) and verification..."
+Write-Host "[5/6] Memory-safety build (UBSan + bounds, trap-on-violation) and verification..."
 # A separate instrumented module. -fsanitize-trap routes every detected undefined behavior
 # or out-of-bounds access to a wasm `unreachable` trap, with no run-time library required,
 # so it is compatible with the freestanding target. Running the full vector set (including
@@ -63,7 +71,7 @@ node (Join-Path $PSScriptRoot "verify.js") $wasmSafe
 if ($LASTEXITCODE -ne 0) { throw "Memory-safety verification trapped or reported failures." }
 Remove-Item $wasmSafe -Force
 
-Write-Host "[4/4] Built-in test against shipped module (node)..."
+Write-Host "[6/6] Built-in test against shipped module (node)..."
 node (Join-Path $PSScriptRoot "verify.js") $wasmOut
 if ($LASTEXITCODE -ne 0) { throw "Built-in test reported failures." }
 
