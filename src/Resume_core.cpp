@@ -3,8 +3,11 @@
 // Contents:    Implementation of the RBC-1 resume logic module: canonical resume record,
 //              CRC-32 integrity word, employment-duration computation, fixed-point easing,
 //              navigation state resolution, and continuous built-in test (BIT).
-// Standard:    Written in conformance with the Joint Strike Fighter Air Vehicle C++ Coding
-//              Standards, Doc. No. 2RDU00001 Rev C, December 2005 ("JSF AV").
+// Standard:    Written to the discipline of the Joint Strike Fighter Air Vehicle C++ Coding
+//              Standards, Doc. No. 2RDU00001 Rev C, December 2005 ("JSF AV"). This is a
+//              conformance effort with one documented deviation (D-1, below), not a certified
+//              compliance: the deviation and the limits of solo authorship are stated openly
+//              in the deviation record and in STANDARD.md.
 // Build:       Freestanding wasm32; no operating system, no C/C++ run-time library, no heap
 //              [AV Rule 206], no exceptions [AV Rule 208], no recursion [AV Rule 119],
 //              no floating point [AV Rule 202 by construction].

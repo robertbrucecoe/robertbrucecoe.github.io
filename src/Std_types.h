@@ -1,8 +1,10 @@
 //------------------------------------------------------------------------------------------------
 // File:        Std_types.h
 // Contents:    Specific-length type definitions for the RBC-1 resume logic module.
-// Standard:    Written in conformance with the Joint Strike Fighter Air Vehicle C++ Coding
-//              Standards, Doc. No. 2RDU00001 Rev C, December 2005 ("JSF AV").
+// Standard:    Written to the discipline of the Joint Strike Fighter Air Vehicle C++ Coding
+//              Standards, Doc. No. 2RDU00001 Rev C, December 2005 ("JSF AV"). A conformance
+//              effort with one documented deviation, not a certified compliance; see
+//              STANDARD.md and the deviation record in Resume_core.cpp.
 // Rationale:   AV Rule 209 requires that the basic types int, short, long, float and double
 //              not be used directly; specific-length equivalents are typedef'd here for the
 //              wasm32 target and these names are used throughout the code.

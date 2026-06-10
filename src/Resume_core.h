@@ -1,8 +1,10 @@
 //------------------------------------------------------------------------------------------------
 // File:        Resume_core.h
 // Contents:    External interface of the RBC-1 resume logic module.
-// Standard:    Written in conformance with the Joint Strike Fighter Air Vehicle C++ Coding
-//              Standards, Doc. No. 2RDU00001 Rev C, December 2005 ("JSF AV").
+// Standard:    Written to the discipline of the Joint Strike Fighter Air Vehicle C++ Coding
+//              Standards, Doc. No. 2RDU00001 Rev C, December 2005 ("JSF AV"). A conformance
+//              effort with one documented deviation, not a certified compliance; see
+//              STANDARD.md and the deviation record in Resume_core.cpp.
 // Module role: This module is the authoritative computation layer for robertbrucecoe.github.io.
 //              It is compiled to a freestanding wasm32 module (no operating system, no C or C++
 //              run-time library, no heap) and is invoked from the presentation layer.

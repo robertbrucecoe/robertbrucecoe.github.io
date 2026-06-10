@@ -3,11 +3,22 @@
 You found it.
 
 The logic layer of [robertbrucecoe.github.io](https://robertbrucecoe.github.io) is written in
-C++ in conformance with the **Joint Strike Fighter Air Vehicle C++ Coding Standards**,
+C++ to the discipline of the **Joint Strike Fighter Air Vehicle C++ Coding Standards**,
 Lockheed Martin Corporation, Doc. No. 2RDU00001 Rev C, December 2005 (the "JSF AV" standard,
 the coding standard of the F-35 air vehicle software). The source is compiled to a
 freestanding `wasm32` module of roughly 3.5 KB with no operating system, no C or C++
 run-time library, and no standard library.
+
+The precise claim, stated plainly so it survives a strict audit: this is a **conformance
+effort with one documented deviation, not a certified compliance**. The honest verb is
+"written to the discipline of," not "in conformance with." A standard carrying a logged
+deviation is, by definition, non-conforming at that point, and a single author cannot
+satisfy the standard's own approval process (AV Rules 4 to 6). The deviation is recorded
+below (D-1, CRC-32 bit-vector handling) and the structural limits are set out under
+[Limitations](#limitations). Everything that *can* be conformed to and verified, is, with
+every diagnostic fatal and a memory-safety gate; what cannot be is named rather than
+stamped over. Forged metal, honestly marked, beats certified steel that lies about its
+assay.
 
 A resume website does not need flight-software discipline. That is the point. The standard
 of work is the same whether the system is a fire direction computer or a web page.
@@ -171,14 +182,22 @@ acknowledged and accepted; the mitigation is the documented parameter contracts 
 
 ## Revision history
 
-This document and the module were revised after an external review identified three valid
-findings against the original version: a pointer-to-integer cast violating AV Rule 182 (with
-an attendant use of `long` against AV Rule 209) in the offset-table accessor; a brittle
-unsigned-to-signed CRC transport relying on target-specific behavior against AV Rule 8; and
-an overstatement of AV Rule 4–6 approval authority for a single-author project. The first
-two were corrected in the source; the third is addressed in Limitations above. The review
-was correct on all three, and acting on it rather than defending the prior text is the
-behavior the cited standard is meant to produce.
+**Review 1.** An external review identified three valid findings against the original
+version: a pointer-to-integer cast violating AV Rule 182 (with an attendant use of `long`
+against AV Rule 209) in the offset-table accessor; a brittle unsigned-to-signed CRC transport
+relying on target-specific behavior against AV Rule 8; and an overstatement of AV Rule 4–6
+approval authority for a single-author project. The first two were corrected in the source
+(the offset accessor was removed in favor of a by-value push interface; the CRC now leaves
+through `rb_data_crc_octet` in [0, 255] values); the third is addressed in Limitations above.
+
+**Review 2.** A second pass confirmed the pointer cast and CRC transport were resolved and
+made a sharper point that survives those fixes: the verb. Code carrying a logged deviation
+and unable to satisfy the standard's approval process is "written to the discipline of" the
+standard, not "in conformance with" it. That phrasing was too strong a stamp. The claim was
+weakened to its honest form throughout the source headers and this document: a conformance
+effort with one documented deviation, not a certified compliance. The reviewer's verdict
+("forged metal, not certified steel; the workmanship is real, the stamp is too strong") was
+correct, and the stamp was corrected to match the metal.
 
 ## Reproducing the verification
 
