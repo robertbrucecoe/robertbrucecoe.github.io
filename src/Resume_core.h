@@ -43,12 +43,17 @@ namespace Rbc                                                                  /
     //               not-initialized code if rb_init has never been called.
     int32 rb_bit_status();
 
-    // rb_data_crc
+    // rb_data_crc_octet
     // Purpose:      Expose the CRC-32 (IEEE 802.3 polynomial) of the canonical resume record
-    //               so the presentation layer can display the integrity word.
-    // Returns:      The CRC-32 value, transported through the wasm boundary in an int32.
-    //               The bit pattern is exact; the consumer reinterprets it as unsigned.
-    int32 rb_data_crc();
+    //               one octet at a time, so the presentation layer can display the integrity
+    //               word. The value is transported octet-by-octet, rather than as a single
+    //               word, so that no conversion of an out-of-range unsigned value to a signed
+    //               type ever occurs: every value returned lies in [0, 255] and is therefore
+    //               representable in int32 with fully defined ISO C++ behavior.
+    //                                                                      [AV Rule 8, 180]
+    // Parameters:   octet_index - which octet to read, 0 (least significant) through 3.
+    // Returns:      The selected octet in [0, 255], or 0 if octet_index is out of range.
+    int32 rb_data_crc_octet(int32 octet_index);
 
     // rb_role_count
     // Purpose:      Report the number of professional roles in the canonical record.
@@ -85,28 +90,30 @@ namespace Rbc                                                                  /
                   int32 start_value,
                   int32 end_value);                                          // [AV Rule 58, 110]
 
-    // rb_offsets_addr
-    // Purpose:      Publish the linear-memory address of the module's fixed-capacity section
-    //               offset table so the presentation layer can write current section positions
-    //               directly into wasm memory. The table is statically allocated; no memory
-    //               is ever requested from a heap.                          [AV Rule 206]
-    // Returns:      Byte address of the first element of the offset table.
-    int32 rb_offsets_addr();
+    // rb_section_reset
+    // Purpose:      Clear the section threshold table in preparation for a fresh sequence of
+    //               rb_section_push calls. The table is statically allocated and the host
+    //               never receives its address: every write passes through rb_section_push,
+    //               so no code outside this module can reach the module's memory. [AV Rule 207]
+    // Returns:      0.
+    int32 rb_section_reset();
 
-    // rb_offsets_capacity
-    // Purpose:      Report the fixed capacity of the section offset table.
-    // Returns:      Maximum number of int32 entries the table can hold.
-    int32 rb_offsets_capacity();
+    // rb_section_push
+    // Purpose:      Append one section's top offset to the threshold table. This is how the
+    //               presentation layer feeds the navigation state machine, by value, without
+    //               any shared-memory aliasing.
+    // Parameters:   section_top - vertical offset of a section's top edge, in CSS pixels.
+    // Returns:      1 if the offset was accepted; 0 if the fixed-capacity table is already
+    //               full (the push is then ignored, never overruns).        [AV Rule 15]
+    int32 rb_section_push(int32 section_top);
 
     // rb_active_section
     // Purpose:      Resolve which page section is active for a given scroll position by
-    //               evaluating the offset table as a monotonic threshold sequence. This is
+    //               evaluating the pushed threshold table as a monotonic sequence. This is
     //               the navigation state machine for the presentation layer.
     // Parameters:   scroll_position - current vertical scroll offset in CSS pixels.
-    //               section_count   - number of valid entries in the offset table; clamped
-    //                                 to the table capacity.                [AV Rule 15]
     // Returns:      Zero-based index of the active section; 0 when no entry qualifies.
-    int32 rb_active_section(int32 scroll_position, int32 section_count);
+    int32 rb_active_section(int32 scroll_position);
   }
 }
 

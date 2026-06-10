@@ -14,13 +14,27 @@ function check(label, actual, expected) {
   console.log(`  ${pass ? "PASS" : "FAIL"}  ${label}: ${actual}${pass ? "" : " (expected " + expected + ")"}`);
 }
 
+function crcHex(e) {
+  // Reassemble the CRC from its four octets, most significant first. No octet exceeds
+  // 255, so the host never receives an out-of-range signed value to reinterpret.
+  let s = "0x";
+  for (let i = crcOctetCount - 1; i >= 0; i -= 1) {
+    s += ("0" + (e.rb_data_crc_octet(i) & 0xFF).toString(16).toUpperCase()).slice(-2);
+  }
+  return s;
+}
+
+const crcOctetCount = 4;
+
 WebAssembly.instantiate(fs.readFileSync(wasmPath)).then(({ instance }) => {
   const e = instance.exports;
 
   // Initialize with a fixed date so every check below is deterministic.
   const bit = e.rb_init(2026, 6);
   check("BIT status (0 = nominal)", bit, 0);
-  check("CRC-32 integrity word", "0x" + (e.rb_data_crc() >>> 0).toString(16).toUpperCase(), "0x5A75BE76");
+  check("CRC-32 integrity word", crcHex(e), "0x5A75BE76");
+  check("CRC octet out-of-range (low) is 0", e.rb_data_crc_octet(-1), 0);
+  check("CRC octet out-of-range (high) is 0", e.rb_data_crc_octet(99), 0);
 
   // Duration subsystem.
   check("role count", e.rb_role_count(), 6);
@@ -36,12 +50,24 @@ WebAssembly.instantiate(fs.readFileSync(wasmPath)).then(({ instance }) => {
   check("ease at midpoint", e.rb_ease(500, 1000, 0, 1000), 500);
   check("ease with INT32 extremes (clamped, no UB)", e.rb_ease(2147483647, 2147483647, -2147483648, 2147483647), 1000000);
 
-  // Navigation state machine via the shared offset table.
-  const view = new Int32Array(e.memory.buffer, e.rb_offsets_addr(), e.rb_offsets_capacity());
-  view.set([0, 800, 1600, 2400, 3200, 4000]);
-  check("active section at scroll 0", e.rb_active_section(0, 6), 0);
-  check("active section at scroll 900", e.rb_active_section(900, 6), 1);
-  check("active section at scroll 5000", e.rb_active_section(5000, 6), 5);
+  // Navigation state machine, fed by value through rb_section_push (no shared memory).
+  e.rb_section_reset();
+  [0, 800, 1600, 2400, 3200, 4000].forEach((offset) => { e.rb_section_push(offset); });
+  check("active section at scroll 0", e.rb_active_section(0), 0);
+  check("active section at scroll 900", e.rb_active_section(900), 1);
+  check("active section at scroll 5000", e.rb_active_section(5000), 5);
+
+  // Capacity guard: pushing past the fixed table size must be rejected, never overrun.
+  e.rb_section_reset();
+  let acceptedAll = true;
+  let rejectedPastCapacity = false;
+  for (let i = 0; i < 64; i += 1) {
+    const ok = e.rb_section_push(i * 100);
+    if (i < 16 && ok !== 1) { acceptedAll = false; }
+    if (i >= 16 && ok === 0) { rejectedPastCapacity = true; }
+  }
+  check("section table accepts up to capacity", acceptedAll, true);
+  check("section table rejects beyond capacity (no overrun)", rejectedPastCapacity, true);
 
   console.log(failures === 0 ? "All checks passed." : `${failures} check(s) FAILED.`);
   process.exit(failures === 0 ? 0 : 1);

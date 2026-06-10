@@ -17,8 +17,13 @@
 //      No unsigned addition, subtraction, multiplication, or division is performed anywhere
 //      in this module. Unsigned types are required because the algorithm is defined on
 //      32-bit unsigned bit patterns and because AV Rule 164.1 forbids right-shifting values
-//      that could be negative. Scope of deviation: crc32_table_entry, crc32_of_record, and
-//      the s_crc_* objects below. Approved: R. Coe, module owner, 2026-06-09.
+//      that could be negative. Scope of deviation: crc32_table_entry, crc32_of_bytes,
+//      rb_data_crc_octet, and the s_crc_* / s_record_crc objects below. Approved: R. Coe,
+//      module owner, 2026-06-09.
+//      Note on approval authority: AV Rules 4-6 presume a program organization with a software
+//      engineering lead and product manager recorded in a configuration-management tool. This
+//      is a single-author module with no such structure; "module owner" names the only
+//      authority that exists. See the Limitations section of STANDARD.md.
 //------------------------------------------------------------------------------------------------
 
 #include <Resume_core.h>                                                       // [AV Rule 33, 40]
@@ -54,6 +59,7 @@ namespace Rbc                                                                  /
   const int32 crc_table_size       = 256;       // one table entry per possible byte value
   const int32 bits_per_byte        = 8;         // bit width of one octet
   const int32 byte_mask            = 0xFF;      // low-octet isolation mask
+  const int32 crc_octet_count      = 4;         // octets in a 32-bit CRC value
   const int32 ease_test_duration   = 1000;      // BIT easing known-answer test duration, ms
   const int32 ease_test_target     = 1000;      // BIT easing known-answer test end value
   const int32 ease_test_midpoint   = 500;       // expected smoothstep value at half duration
@@ -131,8 +137,10 @@ namespace Rbc                                                                  /
   static uint32 s_record_crc       = 0U;                    // CRC-32 of canonical_record
   static uint32 s_crc_table[crc_table_size] = { 0U };       // CRC-32 lookup table, built once
                                                             // during initialization
-  static int32  s_section_offsets[offset_table_size] = { 0 };  // section thresholds written
-                                                               // by the presentation layer
+  static int32  s_section_offsets[offset_table_size] = { 0 };  // section thresholds, populated
+                                                               // only by rb_section_push
+  static int32  s_section_count    = 0;                     // count of valid section thresholds;
+                                                            // invariant: 0 <= count <= capacity
 
   // ---------------------------------------------------------------------------------------------
   // Internal helper functions (file scope, internal linkage)                  [AV Rule 107, 137]
@@ -390,13 +398,24 @@ namespace Rbc                                                                  /
       return s_bit_status;                 // sole exit point                 [AV Rule 113]
     }
 
-    int32 rb_data_crc()
+    int32 rb_data_crc_octet(int32 octet_index)
     {
-      // The CRC bit pattern crosses the wasm boundary in an int32; i32 is the only scalar
-      // integer type WebAssembly exposes to the host. The pattern is preserved exactly and
-      // the host reinterprets it as unsigned. This is a value-representation transport,
-      // not an arithmetic use; see deviation D-1.
-      return static_cast<int32>(s_record_crc);                        // [AV Rule 185]
+      int32 result = 0;                      // out-of-range default            [AV Rule 113]
+      if ((octet_index >= 0) && (octet_index < crc_octet_count))      // [AV Rule 158]
+      {
+        int32  shift = (octet_index * bits_per_byte);   // 0, 8, 16, or 24 bits
+        uint32 octet = ((s_record_crc >> shift) & static_cast<uint32>(byte_mask));
+                                             // isolate one octet of the CRC bit vector;
+                                             // bitwise only, see deviation D-1. The masked
+                                             // value is in [0, 255].
+        result = static_cast<int32>(octet);  // [0, 255] is representable in int32 with
+                                             // fully defined behavior          [AV Rule 8, 185]
+      }
+      else
+      {
+        // octet_index lies outside [0, 3]; the defensive default of 0 stands.  [AV Rule 192]
+      }
+      return result;                         // sole exit point                 [AV Rule 113]
     }
 
     int32 rb_role_count()
@@ -435,29 +454,34 @@ namespace Rbc                                                                  /
       return ease_internal(elapsed, duration, start_value, end_value);
     }
 
-    int32 rb_offsets_addr()
+    int32 rb_section_reset()
     {
-      // The address of a statically allocated object is a stable property of the linked
-      // module; publishing it is the wasm idiom for a shared, fixed-capacity buffer.
-      // No pointer arithmetic is performed; the host indexes the table through the
-      // typed-array view it constructs over linear memory.                   [AV Rule 215]
-      return static_cast<int32>(reinterpret_cast<long>(&s_section_offsets[0]));
-                                           // wasm32 addresses are 32-bit     [AV Rule 185]
+      s_section_count = 0;                  // discard any previously pushed thresholds
+      return 0;                             // sole exit point                 [AV Rule 113]
     }
 
-    int32 rb_offsets_capacity()
+    int32 rb_section_push(int32 section_top)
     {
-      return offset_table_size;            // sole exit point                 [AV Rule 113]
+      int32 accepted = 0;                   // rejected unless there is room   [AV Rule 113]
+      if (s_section_count < offset_table_size)   // capacity guard; count cannot exceed
+      {                                          // the table size, so no overrun is possible
+        s_section_offsets[s_section_count] = section_top;   // store at the next free slot
+        s_section_count = (s_section_count + 1);            // advance the count
+        accepted = 1;                       // report acceptance
+      }
+      else
+      {
+        // Table is at capacity; the push is ignored rather than overrunning.  [AV Rule 192]
+      }
+      return accepted;                       // sole exit point                 [AV Rule 113]
     }
 
-    int32 rb_active_section(int32 scroll_position, int32 section_count)
+    int32 rb_active_section(int32 scroll_position)
     {
       int32 result        = 0;             // default to the first section    [AV Rule 113]
-      int32 safe_count    = clamp_int32(section_count, 0, offset_table_size);
-                                           // never scan beyond the table     [AV Rule 15]
       int32 threshold     = (scroll_position + activation_bias);   // biased scan position
       int32 section_index = 0;             // bounded loop counter
-      for (section_index = 0; section_index < safe_count; ++section_index)
+      for (section_index = 0; section_index < s_section_count; ++section_index)
       {                                                               // [AV Rule 198, 199]
         if (s_section_offsets[section_index] <= threshold)   // section top passed?
         {

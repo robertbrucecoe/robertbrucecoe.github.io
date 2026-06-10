@@ -1019,7 +1019,11 @@
 
       /* Power-on built-in test */
       var bit = e.rb_init(now.getFullYear(), now.getMonth() + 1);
-      var crcHex = '0x' + (e.rb_data_crc() >>> 0).toString(16).toUpperCase();
+      var crcHex = '0x';
+      var oi;
+      for (oi = 3; oi >= 0; oi--) {
+        crcHex += ('0' + (e.rb_data_crc_octet(oi) & 0xFF).toString(16).toUpperCase()).slice(-2);
+      }
       stripBit.textContent = (bit === 0) ? 'BIT NOMINAL' : 'BIT FAULT ' + bit;
       stripCrc.textContent = crcHex;
       document.getElementById('spec-bit').textContent = (bit === 0) ? 'NOMINAL' : 'FAULT CODE ' + bit;
@@ -1056,18 +1060,19 @@
         requestAnimationFrame(tick);
       });
 
-      /* Navigation state machine: offsets live in wasm linear memory */
-      var view = new Int32Array(e.memory.buffer, e.rb_offsets_addr(), e.rb_offsets_capacity());
+      /* Navigation state machine: section tops are pushed into the module by value;
+         the host never reads or writes the module's memory directly. */
       function writeOffsets() {
-        SECTIONS.forEach(function (id, i) {
+        e.rb_section_reset();
+        SECTIONS.forEach(function (id) {
           var el = document.getElementById(id);
-          view[i] = el ? Math.round(el.getBoundingClientRect().top + window.scrollY) : 0;
+          e.rb_section_push(el ? Math.round(el.getBoundingClientRect().top + window.scrollY) : 0);
         });
       }
       var rails = document.querySelectorAll('.rail a');
       var current = -1;
       function onScroll() {
-        var idx = e.rb_active_section(Math.round(window.scrollY), SECTIONS.length);
+        var idx = e.rb_active_section(Math.round(window.scrollY));
         if (idx !== current) {
           current = idx;
           stripSect.textContent = LABELS[idx];

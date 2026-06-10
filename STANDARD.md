@@ -49,7 +49,8 @@ displayed in the masthead is the live CRC-32 of the canonical record embedded in
 | Environment | `-nostdlib -ffreestanding -fno-exceptions -fno-rtti` |
 | Diagnostics policy (AV Rule 218) | `-Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion -Wshadow -Wold-style-cast -Werror`. Every diagnostic is fatal. |
 | Static analysis | clang-tidy: `clang-analyzer-*`, `bugprone-*`, magic-number, goto, recursion, and function-size checks |
-| Verification harness | `build/verify.js` under node; 15 checks, all required to pass |
+| Memory-safety gate | second module built with `-fsanitize=undefined,bounds -fsanitize-trap=all`; traps on any UB or out-of-bounds access |
+| Verification harness | `build/verify.js` under node; 19 checks, all required to pass, run against both the shipped and the instrumented module |
 
 **Note on AV Rule 8.** The rule requires ISO/IEC 14882:2002. The closest mode in a modern
 clang is `-std=c++03`, which is ISO/IEC 14882:2003, the technical corrigendum of the 2002
@@ -99,35 +100,85 @@ throughout the source and are not repeated per rule here.
 | 164, 164.1 | Shift bounds; no right-shift of possibly negative values | Shifts occur on `uint32` only; the signed fixed-point path uses division instead of shifts |
 | 168 | No comma operator | None |
 | 175 | Pointer comparison against plain 0 | Not applicable; no pointer comparisons exist |
-| 180 | No information-losing implicit conversions | `-Wconversion -Wsign-conversion` are fatal; narrowing sites carry value-range justification comments |
-| 185 | C++ casts only | `static_cast`/`reinterpret_cast` only; `-Wold-style-cast` is fatal |
+| 180 | No information-losing implicit conversions | `-Wconversion -Wsign-conversion` are fatal; narrowing sites carry value-range justification comments. The CRC crosses the boundary octet-by-octet (`rb_data_crc_octet`), each value in [0, 255], so no out-of-range unsigned-to-signed conversion ever occurs |
+| 182 | No casting to or from pointer types | No pointer is converted to or from an integer anywhere in the module. The earlier offset-table design exposed a raw address; it was removed in favor of `rb_section_push`, which passes offsets by value |
+| 185 | C++ casts only | `static_cast` only; no `reinterpret_cast` remains; `-Wold-style-cast` is fatal |
 | 186–196 | Flow control (no goto, no continue, no break outside switch, else on every else-if chain) | Throughout; every `if`/`else if` chain ends in an `else`, including commented empty blocks |
 | 198–201 | For-loop discipline (single loop parameter, no body modification) | All loops are simple bounded counters |
 | 203 | No overflow | Every arithmetic path carries a worst-case bound analysis in comments; verified against `INT32` extremes in `build/verify.js` |
 | 204.1 | Expression value independent of evaluation order | No expression contains more than one side effect |
 | 206 | No heap allocation after initialization | No heap allocation exists at all, before or after; the module imports nothing and contains no allocator |
 | 208 | No exceptions | `-fno-exceptions`; no throw, try, or catch |
-| 209 | Specific-length typedefs instead of basic types | `Std_types.h`; widths verified at compile time |
+| 209 | Specific-length typedefs instead of basic types | `Std_types.h`; widths verified at compile time. No basic type (`int`, `short`, `long`, `float`, `double`) appears in implementation code |
 | 213 | No reliance on operator precedence below arithmetic | Fully parenthesized expressions throughout |
-| 215 | No pointer arithmetic | Array indexing through bounds-checked counters only |
+| 215 | No pointer arithmetic | Array indexing through bounds-checked counters only; the host never receives a pointer into module memory |
 | 218 | Warning levels per project policy | Policy: every diagnostic fatal; see build environment above |
 
 ## Deviation log (AV Rules 4–6)
 
 AV Rule 6 requires each deviation from a shall rule to be documented in the file containing
-it. The project has one.
+it. The project has one, recorded in the header of `Resume_core.cpp`.
 
 | ID | Rule | Deviation | Justification |
 |---|---|---|---|
-| D-1 | AV Rule 163 | `uint32` used in the CRC-32 subsystem | CRC-32 is polynomial division over GF(2), defined on unsigned 32-bit vectors. The operations are exclusively bitwise (XOR, AND, logical shift); no unsigned addition, subtraction, multiplication, or division occurs anywhere in the module. Recorded in the header of `Resume_core.cpp`. |
+| D-1 | AV Rule 163 (no unsigned arithmetic) | `uint32` used in the CRC-32 subsystem | CRC-32 is polynomial division over GF(2), defined on unsigned 32-bit vectors. The operations are exclusively bitwise (XOR, AND, logical shift); no unsigned addition, subtraction, multiplication, or division occurs anywhere in the module. Scope: `crc32_table_entry`, `crc32_of_bytes`, `rb_data_crc_octet`, and the CRC state objects. |
+
+## Memory safety
+
+Memory safety here is established three ways, not asserted.
+
+1. **By construction.** No heap exists, so use-after-free, double-free, and leaks are not
+   expressible (AV Rule 206). No pointer arithmetic exists (AV Rule 215). No unions exist
+   (AV Rule 153). All storage is fixed-size and statically allocated; every array index is
+   produced by a bounded loop counter or a clamped value.
+2. **By sandbox.** A WebAssembly module cannot address memory outside its own linear
+   memory. The module also exposes no address of its memory to the host: section offsets
+   are passed in by value through `rb_section_push`, so no code outside the module can read
+   or write the module's state. The only writable surface is the four integer arguments of
+   the exported functions.
+3. **By verification.** The build produces a second, instrumented module compiled with
+   `-fsanitize=undefined,bounds -fsanitize-trap=all`. Every detected undefined behavior or
+   out-of-bounds access becomes a wasm trap. The full vector set, including adversarial
+   `INT32`-extreme inputs and a deliberate attempt to push past the section table's fixed
+   capacity, is run against this module; any violation aborts it and fails the build. The
+   shipped module is the clean `-O2` build; the instrumented module is a gate.
+
+## Limitations
+
+This is an honest conformance *effort*, not a certified compliance, and the difference is
+worth stating plainly.
+
+- **Process rules cannot be met by a single author.** AV Rules 4 through 6 presume a
+  program organization: a software engineering lead and a software product manager who
+  approve deviations through a configuration-management tool. This repository has one
+  author and no such structure. The deviation log names "module owner" as the approver
+  because that is the only authority that exists. The *form* of Rule 6 (document each
+  deviation in its file) is met; the *approval process* of Rules 4 and 5 has no analog here
+  and is not claimed.
+- **AV Rule 8 targets ISO/IEC 14882:2002.** The build uses `-std=c++03` (the 2003 technical
+  corrigendum), the closest mode a current clang offers. No construct beyond 14882:2002 is
+  used.
+- **This matrix covers the verifiable shall and will rules** relevant to a module of this
+  size. Rules concerning class hierarchies, templates, virtual dispatch, and multiple
+  inheritance are not exercised because the module uses none of those features.
 
 ## Accepted static-analysis findings
 
-clang-tidy reports five instances of `bugprone-easily-swappable-parameters` (adjacent
-parameters of the same type). WebAssembly exports expose only scalar integer types, so
-every exported function necessarily takes adjacent `int32` parameters. The findings are
+clang-tidy reports three instances of `bugprone-easily-swappable-parameters` (adjacent
+parameters of the same type, in `clamp_int32` and `months_inclusive`). The findings are
 acknowledged and accepted; the mitigation is the documented parameter contracts in
 `Resume_core.h` and the known-answer tests that would catch a transposition.
+
+## Revision history
+
+This document and the module were revised after an external review identified three valid
+findings against the original version: a pointer-to-integer cast violating AV Rule 182 (with
+an attendant use of `long` against AV Rule 209) in the offset-table accessor; a brittle
+unsigned-to-signed CRC transport relying on target-specific behavior against AV Rule 8; and
+an overstatement of AV Rule 4–6 approval authority for a single-author project. The first
+two were corrected in the source; the third is addressed in Limitations above. The review
+was correct on all three, and acting on it rather than defending the prior text is the
+behavior the cited standard is meant to produce.
 
 ## Reproducing the verification
 
@@ -136,6 +187,7 @@ $env:WASI_SDK = "<path to wasi-sdk>"
 .\build\build.ps1
 ```
 
-The script compiles with the full fatal-diagnostics flag set, runs static analysis, and
-executes the 15-check verification harness. The page itself re-runs the module's built-in
-test on every load; the result is in the top-right corner of the masthead.
+The script compiles the shipped module with the full fatal-diagnostics flag set, runs static
+analysis, builds and runs the instrumented memory-safety module, then runs the verification
+harness against the shipped module. The page itself re-runs the module's built-in test on
+every load; the result is in the top-right corner of the masthead.
