@@ -3,197 +3,422 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Robert Coe — Resume</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,300&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<title>Robert Coe · Veteran Leader · Business Strategist · Educator</title>
+<meta name="description" content="Robert Coe: decorated combat veteran, business strategist, and educator. Over a decade of military leadership, national ethics-competition honors, and a standard of work that holds up under inspection.">
+<meta property="og:title" content="Robert Coe · Resume">
+<meta property="og:description" content="Veteran leader, business strategist, educator. Inspect the work.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://robertbrucecoe.github.io">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,600;9..144,700;9..144,900&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;1,8..60,300;1,8..60,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
-    --navy: #0d1b2a;
-    --slate: #1c2f45;
-    --gold: #c49a3c;
-    --gold-light: #e8c56b;
-    --cream: #f5f0e8;
-    --warm-white: #faf8f4;
-    --muted: #8a9db5;
-    --rule: #c49a3c44;
+    --ink:        #0B1622;
+    --navy:       #122336;
+    --slate:      #3A4D63;
+    --gold:       #C2A14D;
+    --gold-soft:  #E3C77B;
+    --amber:      #FFB347;
+    --cream:      #F5F0E6;
+    --paper:      #FBF8F2;
+    --hairline:   rgba(194, 161, 77, 0.28);
+    --hairline-2: rgba(18, 35, 54, 0.12);
+    --strip-h:    34px;
+    --rail-w:     200px;
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
+  html { scroll-behavior: smooth; scroll-padding-top: calc(var(--strip-h) + 24px); }
+
   body {
-    background: var(--warm-white);
-    color: var(--navy);
+    background: var(--paper);
+    color: var(--ink);
     font-family: 'Source Serif 4', Georgia, serif;
     font-weight: 300;
-    line-height: 1.6;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
   }
 
-  /* ─── HEADER ─── */
-  .header {
-    background: var(--navy);
-    color: var(--cream);
-    padding: 56px 72px 48px;
-    position: relative;
-    overflow: hidden;
-  }
+  ::selection { background: var(--gold); color: var(--ink); }
 
-  .header::before {
-    content: '';
-    position: absolute;
+  /* ────────────────────────── STATUS STRIP ────────────────────────── */
+  .strip {
+    position: fixed;
     top: 0; left: 0; right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, var(--gold), var(--gold-light), var(--gold));
+    height: var(--strip-h);
+    background: var(--ink);
+    color: rgba(245, 240, 230, 0.55);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    z-index: 200;
+    border-bottom: 1px solid rgba(194, 161, 77, 0.35);
+    white-space: nowrap;
   }
 
-  .header::after {
+  .strip a { color: inherit; text-decoration: none; }
+  .strip a:hover { color: var(--gold-soft); }
+
+  .strip .sys { color: var(--gold-soft); font-weight: 600; }
+  .strip .seg { display: flex; gap: 18px; align-items: center; overflow: hidden; }
+
+  .strip .bit { color: var(--amber); font-weight: 500; }
+  .strip .bit::before {
+    content: '';
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--amber);
+    margin-right: 7px;
+    vertical-align: 1px;
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+  .strip .sect { color: rgba(245, 240, 230, 0.75); min-width: 200px; text-align: center; }
+
+  @media (max-width: 900px) {
+    .strip .sect { display: none; }
+    .strip .crc-label { display: none; }
+  }
+
+  @media (max-width: 600px) {
+    .strip .strip-title { display: none; }
+  }
+
+  /* ────────────────────────── LEFT RAIL NAV ────────────────────────── */
+  .rail {
+    position: fixed;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+    width: var(--rail-w);
+    padding-left: 28px;
+    z-index: 100;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+  }
+
+  .rail a {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    color: var(--slate);
+    text-decoration: none;
+    padding: 7px 0;
+    opacity: 0.55;
+    transition: opacity 0.25s ease, color 0.25s ease;
+  }
+
+  .rail a .no { color: var(--gold); font-size: 9px; }
+
+  .rail a::before {
+    content: '';
+    width: 14px;
+    height: 1px;
+    background: var(--gold);
+    align-self: center;
+    transform: scaleX(0.4);
+    transform-origin: left;
+    transition: transform 0.3s ease;
+  }
+
+  .rail a.active { opacity: 1; color: var(--ink); font-weight: 600; }
+  .rail a.active::before { transform: scaleX(1); }
+  .rail a:hover { opacity: 1; }
+
+  @media (max-width: 1240px) { .rail { display: none; } }
+
+  /* ────────────────────────── LAYOUT ────────────────────────── */
+  .page {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 0 36px;
+  }
+
+  section { scroll-margin-top: calc(var(--strip-h) + 10px); }
+
+  /* Reveal-on-scroll: content is fully visible by default; the .js class on <html>
+     arms the animation only when scripting is available. */
+  .reveal { opacity: 1; transform: none; }
+  html.js .reveal {
+    opacity: 0;
+    transform: translateY(26px);
+    transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  html.js .reveal.in { opacity: 1; transform: none; }
+
+  @media (prefers-reduced-motion: reduce) {
+    html.js .reveal { opacity: 1; transform: none; transition: none; }
+    .strip .bit::before { animation: none; }
+    html { scroll-behavior: auto; }
+  }
+
+  /* ────────────────────────── HERO ────────────────────────── */
+  .hero {
+    padding: 150px 0 90px;
+    position: relative;
+  }
+
+  .hero::after {
     content: '';
     position: absolute;
-    top: -80px; right: -80px;
-    width: 320px; height: 320px;
-    border: 1px solid rgba(196, 154, 60, 0.12);
+    top: 120px; right: -140px;
+    width: 420px; height: 420px;
+    border: 1px solid var(--hairline);
     border-radius: 50%;
     pointer-events: none;
   }
 
-  .header-inner {
-    max-width: 900px;
-    margin: 0 auto;
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 40px;
-    align-items: end;
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: 200px; right: -60px;
+    width: 260px; height: 260px;
+    border: 1px solid var(--hairline-2);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  .doc-line {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-bottom: 28px;
   }
 
   .name {
-    font-family: 'Playfair Display', serif;
-    font-size: 52px;
+    font-family: 'Fraunces', serif;
+    font-optical-sizing: auto;
+    font-size: clamp(64px, 11vw, 118px);
     font-weight: 900;
-    letter-spacing: -1px;
-    line-height: 1.05;
-    animation: fadeUp 0.7s ease both;
+    line-height: 0.95;
+    letter-spacing: -0.025em;
+    color: var(--ink);
   }
 
-  .title-line {
-    font-family: 'Courier Prime', monospace;
-    font-size: 11px;
-    letter-spacing: 3.5px;
-    text-transform: uppercase;
-    color: var(--gold-light);
-    margin-top: 10px;
-    animation: fadeUp 0.7s 0.1s ease both;
-  }
-
-  .contact-block {
-    text-align: right;
-    font-size: 12.5px;
-    line-height: 2;
-    color: var(--muted);
-    animation: fadeUp 0.7s 0.15s ease both;
-  }
-
-  .contact-block a {
-    color: var(--gold-light);
-    text-decoration: none;
-  }
-
-  /* ─── MAIN LAYOUT ─── */
-  .body-wrap {
-    max-width: 900px;
-    margin: 0 auto;
-    padding: 0 72px 60px;
-  }
-
-  /* ─── SUMMARY BAR ─── */
-  .summary {
-    background: var(--cream);
-    border-left: 3px solid var(--gold);
-    padding: 24px 28px;
-    margin: 36px 0 40px;
-    font-size: 15px;
+  .name em {
     font-style: italic;
-    color: var(--slate);
-    animation: fadeUp 0.6s 0.2s ease both;
-    line-height: 1.75;
-  }
-
-  /* ─── SECTION HEADERS ─── */
-  .section {
-    margin-bottom: 36px;
-    animation: fadeUp 0.6s 0.25s ease both;
-  }
-
-  .section-title {
-    font-family: 'Courier Prime', monospace;
-    font-size: 10px;
-    letter-spacing: 4px;
-    text-transform: uppercase;
-    color: var(--gold);
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    margin-bottom: 20px;
-  }
-
-  .section-title::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--rule);
-  }
-
-  /* ─── EXPERIENCE ─── */
-  .entry {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 8px;
-    margin-bottom: 24px;
-    padding-bottom: 24px;
-    border-bottom: 1px solid #e8e2d8;
-  }
-
-  .entry:last-child {
-    border-bottom: none;
-    padding-bottom: 0;
-    margin-bottom: 0;
-  }
-
-  .entry-role {
-    font-family: 'Playfair Display', serif;
-    font-size: 17px;
-    font-weight: 700;
+    font-weight: 300;
     color: var(--navy);
   }
 
-  .entry-org {
-    font-size: 13.5px;
-    color: var(--gold);
-    font-weight: 600;
-    margin: 2px 0 8px;
-    font-family: 'Courier Prime', monospace;
-    letter-spacing: 0.5px;
+  .role-line {
+    margin-top: 30px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: var(--slate);
   }
 
-  .entry-date {
-    font-family: 'Courier Prime', monospace;
-    font-size: 11px;
-    letter-spacing: 1px;
-    color: var(--muted);
-    text-align: right;
-    white-space: nowrap;
-    padding-top: 4px;
+  .role-line::before {
+    content: '';
+    width: 56px; height: 1px;
+    background: var(--gold);
   }
+
+  .lede {
+    margin-top: 44px;
+    max-width: 620px;
+    font-size: 21px;
+    line-height: 1.62;
+    color: var(--navy);
+    font-weight: 300;
+  }
+
+  .lede strong { font-weight: 600; color: var(--ink); }
+
+  .contact-row {
+    margin-top: 36px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 28px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+  }
+
+  .contact-row a {
+    color: var(--ink);
+    text-decoration: none;
+    border-bottom: 1px solid var(--hairline);
+    padding-bottom: 2px;
+    transition: border-color 0.2s ease, color 0.2s ease;
+  }
+
+  .contact-row a:hover { color: var(--gold); border-color: var(--gold); }
+
+  /* Stat counters */
+  .stats {
+    margin-top: 70px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-top: 1px solid var(--hairline);
+  }
+
+  .stat { padding: 26px 24px 0 0; }
+  .stat + .stat { padding-left: 24px; border-left: 1px solid var(--hairline-2); }
+
+  .stat .num {
+    font-family: 'Fraunces', serif;
+    font-size: 46px;
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .stat .num sub {
+    font-size: 15px;
+    font-weight: 400;
+    color: var(--gold);
+    vertical-align: baseline;
+    margin-left: 2px;
+  }
+
+  .stat .lbl {
+    margin-top: 10px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9.5px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--slate);
+  }
+
+  @media (max-width: 680px) {
+    .stats { grid-template-columns: 1fr; }
+    .stat + .stat { padding-left: 0; border-left: none; border-top: 1px solid var(--hairline-2); margin-top: 18px; padding-top: 18px; }
+  }
+
+  /* ────────────────────────── SECTION CHROME ────────────────────────── */
+  .sec-head {
+    display: flex;
+    align-items: baseline;
+    gap: 18px;
+    margin: 110px 0 54px;
+  }
+
+  .sec-head .no {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    color: var(--gold);
+  }
+
+  .sec-head h2 {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(30px, 4.6vw, 42px);
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    color: var(--ink);
+  }
+
+  .sec-head::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--hairline);
+    align-self: center;
+  }
+
+  /* ────────────────────────── EXPERIENCE ────────────────────────── */
+  .xp {
+    position: relative;
+    padding-left: 40px;
+    border-left: 1px solid var(--hairline);
+  }
+
+  .entry {
+    position: relative;
+    padding-bottom: 64px;
+  }
+
+  .entry:last-child { padding-bottom: 12px; }
+
+  .entry::before {
+    content: '';
+    position: absolute;
+    left: -44.5px;
+    top: 12px;
+    width: 9px; height: 9px;
+    background: var(--paper);
+    border: 1.5px solid var(--gold);
+    border-radius: 50%;
+  }
+
+  .entry-top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px 18px;
+  }
+
+  .entry h3 {
+    font-family: 'Fraunces', serif;
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+
+  .entry .org {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-weight: 500;
+  }
+
+  .entry .when {
+    margin-top: 7px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    color: var(--slate);
+  }
+
+  .entry .dur {
+    color: var(--navy);
+    background: var(--cream);
+    border: 1px solid var(--hairline);
+    padding: 2px 9px;
+    border-radius: 2px;
+    font-weight: 500;
+    display: none;
+  }
+
+  html.js .entry .dur.filled { display: inline-block; }
 
   .entry ul {
     list-style: none;
-    padding: 0;
+    margin-top: 20px;
   }
 
   .entry li {
-    font-size: 14px;
-    padding-left: 18px;
     position: relative;
-    margin-bottom: 5px;
-    color: #3a4a5c;
-    line-height: 1.6;
+    padding-left: 26px;
+    margin-bottom: 11px;
+    font-size: 15.5px;
+    color: var(--slate);
+    line-height: 1.66;
   }
 
   .entry li::before {
@@ -201,439 +426,668 @@
     position: absolute;
     left: 0;
     color: var(--gold);
-    font-weight: 700;
   }
 
-  /* ─── TWO-COL GRID ─── */
-  .two-col {
+  .entry li strong { color: var(--ink); font-weight: 600; }
+
+  /* ────────────────────────── EDUCATION / HONORS ────────────────────────── */
+  .duo {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 32px;
+    gap: 64px;
   }
 
-  /* ─── SKILLS ─── */
-  .skill-group {
-    margin-bottom: 14px;
-  }
+  @media (max-width: 760px) { .duo { grid-template-columns: 1fr; } }
 
-  .skill-label {
-    font-family: 'Courier Prime', monospace;
-    font-size: 10px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 5px;
-  }
+  .edu-item { margin-bottom: 30px; }
 
-  .skill-pills {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-
-  .pill {
-    background: var(--cream);
-    border: 1px solid #ddd5c4;
-    color: var(--slate);
-    font-size: 12px;
-    padding: 3px 11px;
-    border-radius: 2px;
-    font-family: 'Source Serif 4', serif;
-    font-weight: 400;
-  }
-
-  /* ─── AWARDS ─── */
-  .award-row {
-    display: flex;
-    align-items: baseline;
-    gap: 12px;
-    margin-bottom: 10px;
-    font-size: 14px;
-  }
-
-  .award-name {
+  .edu-item .deg {
+    font-family: 'Fraunces', serif;
+    font-size: 20px;
     font-weight: 600;
-    color: var(--navy);
+    color: var(--ink);
   }
 
-  .award-body {
-    color: var(--muted);
-    font-size: 12.5px;
+  .edu-item .sch {
+    margin-top: 5px;
+    font-size: 14px;
+    color: var(--slate);
   }
 
-  .award-year {
-    font-family: 'Courier Prime', monospace;
+  .edu-item .sch .mono {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: var(--gold);
+  }
+
+  .honor {
+    display: grid;
+    grid-template-columns: 52px 1fr;
+    gap: 16px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--hairline-2);
+  }
+
+  .honor:first-of-type { border-top: 1px solid var(--hairline-2); }
+
+  .honor .yr {
+    font-family: 'IBM Plex Mono', monospace;
     font-size: 11px;
     color: var(--gold);
-    margin-left: auto;
-    white-space: nowrap;
+    padding-top: 4px;
   }
 
-  /* ─── EDUCATION ─── */
-  .edu-entry {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    margin-bottom: 12px;
+  .honor .what {
+    font-size: 15px;
+    color: var(--ink);
+    font-weight: 600;
   }
 
-  .edu-degree {
-    font-family: 'Playfair Display', serif;
-    font-size: 16px;
-    font-weight: 700;
-  }
-
-  .edu-school {
-    font-size: 13px;
-    color: var(--muted);
+  .honor .ctx {
+    font-size: 13.5px;
+    color: var(--slate);
     margin-top: 2px;
+    font-weight: 300;
   }
 
-  /* ─── FOOTER ─── */
-  .footer-bar {
-    background: var(--navy);
-    color: var(--muted);
+  /* ────────────────────────── COMPETENCIES ────────────────────────── */
+  .comp-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px 56px;
+  }
+
+  @media (max-width: 760px) { .comp-grid { grid-template-columns: 1fr; } }
+
+  .comp h4 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-weight: 600;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .comp h4::after { content: ''; flex: 1; height: 1px; background: var(--hairline-2); }
+
+  .comp ul { list-style: none; }
+
+  .comp li {
+    display: inline;
+    font-size: 14.5px;
+    color: var(--navy);
+    line-height: 2.05;
+  }
+
+  .comp li + li::before {
+    content: '·';
+    color: var(--gold);
+    margin: 0 10px 0 8px;
+  }
+
+  /* ────────────────────────── COLOPHON ────────────────────────── */
+  .colophon {
+    margin-top: 130px;
+    background: var(--ink);
+    color: rgba(245, 240, 230, 0.78);
+    border-top: 1px solid var(--gold);
+  }
+
+  .colophon-inner {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 90px 36px 70px;
+  }
+
+  .colophon .sec-head { margin: 0 0 44px; }
+  .colophon .sec-head h2 { color: var(--cream); }
+  .colophon .sec-head::after { background: rgba(194, 161, 77, 0.35); }
+
+  .colophon p {
+    max-width: 640px;
+    font-size: 16.5px;
+    line-height: 1.75;
+    margin-bottom: 22px;
+    font-weight: 300;
+  }
+
+  .colophon p strong { color: var(--cream); font-weight: 600; }
+  .colophon p a { color: var(--gold-soft); text-decoration: none; border-bottom: 1px solid rgba(227, 199, 123, 0.4); }
+  .colophon p a:hover { border-color: var(--gold-soft); }
+
+  .spec {
+    margin: 44px 0 10px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1px;
+    background: rgba(194, 161, 77, 0.25);
+    border: 1px solid rgba(194, 161, 77, 0.25);
+  }
+
+  .spec div {
+    background: var(--ink);
+    padding: 18px 20px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .spec .k {
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(245, 240, 230, 0.45);
+    margin-bottom: 7px;
+  }
+
+  .spec .v { font-size: 13px; color: var(--amber); font-weight: 500; }
+
+  .footer {
     text-align: center;
-    font-family: 'Courier Prime', monospace;
-    font-size: 10.5px;
-    letter-spacing: 2px;
-    padding: 16px;
-    margin-top: 40px;
+    padding: 34px 20px;
+    border-top: 1px solid rgba(194, 161, 77, 0.18);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(245, 240, 230, 0.4);
   }
 
-  /* ─── ANIMATIONS ─── */
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(18px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-
-  .section:nth-child(1) { animation-delay: 0.2s; }
-  .section:nth-child(2) { animation-delay: 0.3s; }
-  .section:nth-child(3) { animation-delay: 0.4s; }
-  .section:nth-child(4) { animation-delay: 0.5s; }
-
-  /* ─── ACTION BAR ─── */
-  .action-bar {
+  /* ────────────────────────── ACTION BAR ────────────────────────── */
+  .actions {
     position: fixed;
-    bottom: 28px;
-    right: 28px;
+    bottom: 26px;
+    right: 26px;
     display: flex;
     flex-direction: column;
     gap: 10px;
-    z-index: 100;
+    z-index: 150;
   }
 
   .action-btn {
     display: flex;
     align-items: center;
-    gap: 8px;
-    background: var(--navy);
-    color: var(--gold-light);
+    gap: 9px;
+    background: var(--ink);
+    color: var(--gold-soft);
     border: 1px solid var(--gold);
-    padding: 10px 18px;
-    font-family: 'Courier Prime', monospace;
-    font-size: 11px;
-    letter-spacing: 2px;
+    padding: 11px 18px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
     cursor: pointer;
-    border-radius: 3px;
+    border-radius: 2px;
     text-decoration: none;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.25);
-    transition: background 0.2s, color 0.2s;
+    box-shadow: 0 6px 24px rgba(11, 22, 34, 0.28);
+    transition: background 0.2s ease, color 0.2s ease;
     white-space: nowrap;
   }
 
   .action-btn:hover {
     background: var(--gold);
-    color: var(--navy);
+    color: var(--ink);
   }
 
   .action-btn svg {
-    width: 14px;
-    height: 14px;
+    width: 13px;
+    height: 13px;
     fill: currentColor;
     flex-shrink: 0;
   }
 
-  @media print {
-    .action-bar { display: none; }
+  @media (max-width: 680px) {
+    .actions { bottom: 14px; right: 14px; }
+    .action-btn { padding: 9px 14px; }
+    .action-btn .btn-label { display: none; }
+    .action-btn svg { width: 16px; height: 16px; }
   }
 
-  @media (max-width: 680px) {
-    .action-bar { bottom: 16px; right: 16px; }
-  }
+  /* ────────────────────────── PRINT ────────────────────────── */
   @media print {
+    .strip, .rail, .actions { display: none; }
     body { background: white; }
-    .header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    @page { margin: 0.5in; }
-  }
-
-  @media (max-width: 680px) {
-    .header { padding: 36px 24px 32px; }
-    .header-inner { grid-template-columns: 1fr; }
-    .contact-block { text-align: left; }
-    .name { font-size: 36px; }
-    .body-wrap { padding: 0 24px 40px; }
-    .two-col { grid-template-columns: 1fr; }
-    .entry { grid-template-columns: 1fr; }
-    .entry-date { text-align: left; }
+    .hero { padding-top: 40px; }
+    .colophon { background: white; color: var(--slate); border-top: 1px solid var(--hairline); }
+    .colophon .sec-head h2 { color: var(--ink); }
+    .spec .v { color: var(--navy); }
+    .spec div { background: white; }
+    @page { margin: 0.55in; }
   }
 </style>
 </head>
 <body>
 
-<!-- ═══════════ HEADER ═══════════ -->
-<header class="header">
-  <div class="header-inner">
-    <div>
-      <div class="name">Robert Coe</div>
-      <div class="title-line">Veteran Leader &nbsp;·&nbsp; Business Strategist &nbsp;·&nbsp; Educator</div>
+<!-- ═══════════════ STATUS STRIP ═══════════════ -->
+<div class="strip" role="status" aria-label="System status">
+  <span class="seg">
+    <span class="sys">RBC-1</span>
+    <span class="strip-title">ROBERT COE · RESUME SYSTEM</span>
+  </span>
+  <span class="sect" id="strip-section">§ 01 · PROFILE</span>
+  <span class="seg">
+    <span class="bit" id="strip-bit"><noscript>STATIC MODE · FULL CONTENT</noscript></span>
+    <a href="#colophon" title="Data integrity word, explained in the colophon"><span class="crc-label">CRC </span><span id="strip-crc">········</span></a>
+  </span>
+</div>
+
+<!-- ═══════════════ LEFT RAIL ═══════════════ -->
+<nav class="rail" aria-label="Sections">
+  <a href="#profile" data-rail="0"><span class="no">01</span> PROFILE</a>
+  <a href="#experience" data-rail="1"><span class="no">02</span> EXPERIENCE</a>
+  <a href="#education" data-rail="2"><span class="no">03</span> EDUCATION</a>
+  <a href="#honors" data-rail="3"><span class="no">04</span> HONORS</a>
+  <a href="#competencies" data-rail="4"><span class="no">05</span> COMPETENCIES</a>
+  <a href="#colophon" data-rail="5"><span class="no">06</span> COLOPHON</a>
+</nav>
+
+<main class="page">
+
+  <!-- ═══════════════ 01 · PROFILE ═══════════════ -->
+  <section class="hero" id="profile">
+    <div class="doc-line">Doc № RBC-2026-01 · Rev B · Laramie, Wyoming</div>
+    <h1 class="name">Robert<br><em>Coe</em></h1>
+    <div class="role-line">Veteran Leader · Business Strategist · Educator</div>
+    <p class="lede">
+      A diplomat, educator, corrections officer, quality assurance specialist, and decorated
+      combat veteran with over a decade of military leadership. <strong>I build teams that
+      function when it matters, in places where failure is not an option.</strong> My leadership
+      is built on servant principles, technical mastery, and an unwavering commitment to the
+      people I serve.
+    </p>
+    <div class="contact-row">
+      <a href="&#109;&#097;&#105;&#108;&#116;&#111;&#058;&#114;&#111;&#098;&#101;&#114;&#116;&#046;&#098;&#114;&#117;&#099;&#101;&#046;&#099;&#111;&#101;&#064;&#103;&#109;&#097;&#105;&#108;&#046;&#099;&#111;&#109;">&#114;&#111;&#098;&#101;&#114;&#116;&#046;&#098;&#114;&#117;&#099;&#101;&#046;&#099;&#111;&#101;&#064;&#103;&#109;&#097;&#105;&#108;&#046;&#099;&#111;&#109;</a>
+      <a href="https://www.linkedin.com/in/robertthebruce" target="_blank" rel="noopener">linkedin.com/in/robertthebruce</a>
+      <a href="https://github.com/robertbrucecoe/robertbrucecoe.github.io" target="_blank" rel="noopener">source ↗</a>
     </div>
-    <div class="contact-block">
-      <a href="&#109;&#097;&#105;&#108;&#116;&#111;&#058;&#114;&#111;&#098;&#101;&#114;&#116;&#046;&#098;&#114;&#117;&#099;&#101;&#046;&#099;&#111;&#101;&#064;&#103;&#109;&#097;&#105;&#108;&#046;&#099;&#111;&#109;">&#114;&#111;&#098;&#101;&#114;&#116;&#046;&#098;&#114;&#117;&#099;&#101;&#046;&#099;&#111;&#101;&#064;&#103;&#109;&#097;&#105;&#108;&#046;&#099;&#111;&#109;</a><br>
-      <a href="https://www.linkedin.com/in/robertthebruce" target="_blank">linkedin.com/in/robertthebruce</a>
+    <div class="stats reveal">
+      <div class="stat">
+        <div class="num"><span data-count data-target="11">11</span><sub>YRS</sub></div>
+        <div class="lbl">Uniformed military service</div>
+      </div>
+      <div class="stat">
+        <div class="num"><span id="stat-ed" data-count data-target="38">3+</span><sub id="stat-ed-unit">YRS</sub></div>
+        <div class="lbl">Months at Eagle Dynamics, computed live</div>
+      </div>
+      <div class="stat">
+        <div class="num"><span data-count data-target="4">4</span><sub>HONORS</sub></div>
+        <div class="lbl">National &amp; Army distinctions</div>
+      </div>
     </div>
-  </div>
-</header>
+  </section>
 
-<!-- ═══════════ BODY ═══════════ -->
-<main class="body-wrap">
+  <!-- ═══════════════ 02 · EXPERIENCE ═══════════════ -->
+  <section id="experience">
+    <div class="sec-head reveal"><span class="no">02</span><h2>Professional Experience</h2></div>
+    <div class="xp">
 
-  <!-- SUMMARY -->
-  <blockquote class="summary">
-    A diplomat, educator, corrections officer, quality assurance specialist, and decorated combat veteran with over a decade of military leadership — I build teams that function when it matters, in places where failure is not an option. My leadership is built on servant principles, technical mastery, and an unwavering commitment to the people I serve.
-  </blockquote>
-
-  <!-- EXPERIENCE -->
-  <section class="section">
-    <h2 class="section-title">Professional Experience</h2>
-
-    <div class="entry">
-      <div>
-        <div class="entry-role">Closed Beta Tester (Artillery SME)</div>
-        <div class="entry-org">Eagle Dynamics</div>
+      <article class="entry reveal">
+        <div class="entry-top">
+          <h3>Closed Beta Tester (Artillery SME)</h3>
+          <span class="org">Eagle Dynamics</span>
+        </div>
+        <div class="when">
+          <span>MAY 2023 – PRESENT</span>
+          <span class="dur" data-role="0"></span>
+        </div>
         <ul>
           <li>Conducted quality assurance and regression testing on advanced flight simulation software, documenting issues and verifying resolutions across configurations.</li>
           <li>Applied understanding of Soviet rotary-wing doctrine and SME-informed system behavior to identify edge cases and validate performance against real-world operational expectations.</li>
           <li>Trained the development team in unclassified U.S. Army artillery systems and doctrine, enabling realistic AI behavior and accurate simulation of fire direction and battlefield operations.</li>
-          <li>Conducted authorized penetration testing of proprietary AI systems; documented findings for engineering leadership.</li>
+          <li><strong>Designed and executed multi-vector adversarial testing against vendor LLM-based AI systems</strong> integrated into proprietary infrastructure, probing systematically across factuality, source attribution, refusal mechanisms, ethical handling, and information exposure rather than isolated vulnerabilities.</li>
+          <li><strong>Documented vulnerability classes in RAG-based AI systems</strong> including persistence-based refusal collapse, keyword-triggered filter bypass via bulk enumeration, architectural exposure of internal retrieval identifiers, and response-type asymmetries between retrieved-document and generative outputs.</li>
+          <li>Translated technical findings into <strong>decision-grade vendor security evaluation</strong>, escalating to engineering leadership and informing organizational decisions regarding vendor continuation.</li>
         </ul>
-      </div>
-      <div class="entry-date">May 2023 – Present</div>
-    </div>
+      </article>
 
-    <div class="entry">
-      <div>
-        <div class="entry-role">Resident Assistant</div>
-        <div class="entry-org">University of Wyoming Housing &amp; Residential Life</div>
+      <article class="entry reveal">
+        <div class="entry-top">
+          <h3>Resident Assistant</h3>
+          <span class="org">University of Wyoming · Housing &amp; Residential Life</span>
+        </div>
+        <div class="when">
+          <span>DEC 2023 – SEP 2024</span>
+          <span class="dur" data-role="1"></span>
+        </div>
         <ul>
           <li>Served as a live-in leader and mentor for a residential community, fostering an inclusive, safe, and academically supportive environment.</li>
           <li>Provided conflict mediation, crisis intervention, and peer mentorship; connected residents with appropriate campus resources.</li>
           <li>Organized community-building programs and educational workshops promoting engagement, personal growth, and cultural awareness.</li>
         </ul>
-      </div>
-      <div class="entry-date">Dec 2023 – Sep 2024</div>
-    </div>
+      </article>
 
-    <div class="entry">
-      <div>
-        <div class="entry-role">Correctional Officer &amp; Field Training Officer</div>
-        <div class="entry-org">Wyoming Department of Corrections &nbsp;·&nbsp; Wyoming State Penitentiary</div>
+      <article class="entry reveal">
+        <div class="entry-top">
+          <h3>Correctional Officer &amp; Field Training Officer</h3>
+          <span class="org">Wyoming DOC · Wyoming State Penitentiary</span>
+        </div>
+        <div class="when">
+          <span>JUL 2017 – SEP 2023</span>
+          <span class="dur" data-role="2"></span>
+        </div>
         <ul>
-          <li>Maintained security and order in a high-risk facility overseeing housing unit operations for approximately 600 inmates.</li>
-          <li>Served as a Field Training Officer (FTO), onboarding and mentoring new correctional staff in institutional policy, PREA standards, and safety protocols.</li>
+          <li>Maintained security and order in a high-risk facility, overseeing housing unit operations for approximately 600 inmates.</li>
+          <li>Served as a Field Training Officer, onboarding and mentoring new correctional staff in institutional policy, PREA standards, and safety protocols.</li>
           <li>Led emergency response operations utilizing crisis intervention, de-escalation, and incident command principles, reducing incident escalation facility-wide.</li>
-          <li>Applied consistent ethical standards regardless of inmate background; provided academic support to an inmate in a GED class that the individual credited years later as transformative.</li>
+          <li>Applied consistent ethical standards regardless of inmate background; provided academic support in a GED class that one individual credited years later as transformative.</li>
         </ul>
-      </div>
-      <div class="entry-date">Jul 2017 – Sep 2023</div>
-    </div>
+      </article>
 
-    <div class="entry">
-      <div>
-        <div class="entry-role">Veterans Service Intern</div>
-        <div class="entry-org">Wyoming Department of Workforce Services &nbsp;·&nbsp; Laramie, WY</div>
+      <article class="entry reveal">
+        <div class="entry-top">
+          <h3>Veterans Service Intern</h3>
+          <span class="org">Wyoming DWS · Laramie, WY</span>
+        </div>
+        <div class="when">
+          <span>DEC 2016 – JUL 2017</span>
+          <span class="dur" data-role="3"></span>
+        </div>
         <ul>
           <li>Supported veterans in accessing employment resources, training opportunities, and benefits through direct assistance and agency referrals.</li>
-          <li>Assisted in delivering workshops on resume building, job search strategies, and interview preparation tailored to veterans' skill sets.</li>
+          <li>Delivered workshops on resume building, job search strategies, and interview preparation tailored to veterans' skill sets.</li>
           <li>Conducted outreach to local veteran communities to raise awareness of available programs and services.</li>
         </ul>
-      </div>
-      <div class="entry-date">Dec 2016 – Jul 2017</div>
-    </div>
+      </article>
 
-    <div class="entry">
-      <div>
-        <div class="entry-role">ROK-US Military Liaison</div>
-        <div class="entry-org">United States Army &nbsp;·&nbsp; South Korea</div>
+      <article class="entry reveal">
+        <div class="entry-top">
+          <h3>ROK–US Military Liaison</h3>
+          <span class="org">United States Army · South Korea</span>
+        </div>
+        <div class="when">
+          <span>SEP 2015 – DEC 2015</span>
+          <span class="dur" data-role="4"></span>
+        </div>
         <ul>
-          <li>Fostered diplomatic, cultural, and tactical relationships between the Republic of Korea Army and U.S. Military through joint training and community outreach.</li>
+          <li>Fostered diplomatic, cultural, and tactical relationships between the Republic of Korea Army and the U.S. military through joint training and community outreach.</li>
           <li>Designed and directed volunteer English and Spanish language programs at Shinhan University and Dongducheon Foreign Language High School, managing U.S. soldier volunteers as instructors.</li>
-          <li>Directly managed escalation during a live counter-battery incident involving North Korean artillery near the DMZ.</li>
+          <li><strong>Directly managed escalation during a live counter-battery incident</strong> involving North Korean artillery near the DMZ.</li>
         </ul>
-      </div>
-      <div class="entry-date">Sep 2015 – Dec 2015</div>
-    </div>
+      </article>
 
-    <div class="entry">
-      <div>
-        <div class="entry-role">Battery Operations Center Chief &amp; Fire Direction Specialist</div>
-        <div class="entry-org">U.S. Army &amp; Colorado Army National Guard &nbsp;·&nbsp; MLRS / HIMARS</div>
+      <article class="entry reveal">
+        <div class="entry-top">
+          <h3>Battery Operations Center Chief &amp; Fire Direction Specialist</h3>
+          <span class="org">U.S. Army &amp; Colorado ARNG · MLRS / HIMARS</span>
+        </div>
+        <div class="when">
+          <span>JAN 2005 – AUG 2015</span>
+          <span class="dur" data-role="5"></span>
+        </div>
         <ul>
           <li>Led and instructed personnel in fire direction computation, operating FDS, AFATDS, and MLRS communications systems across multiple deployments.</li>
-          <li>Served as Infantry PSD in Ramadi, Iraq — provided close protection and convoy security for military and civilian leaders in high-threat environments.</li>
+          <li>Served as Infantry PSD in Ramadi, Iraq, providing close protection and convoy security for military and civilian leaders in high-threat environments.</li>
           <li>Stationed at Shindand Airbase, Afghanistan; managed base security against mortar attacks and infiltration attempts.</li>
-          <li>Achieved 1st Place in the Fire Direction Team Competition (2014); received the TAG Outstanding Unit Award during the 2008 DNC counter-riot augmentation.</li>
+          <li>1st Place, Fire Direction Team Competition (2014); TAG Outstanding Unit Award, 2008 DNC counter-riot augmentation.</li>
           <li>Served as Honor Guardsman, performing Military Funeral Honors across the greater Colorado area.</li>
-          <li>Discharged: Honorable &nbsp;·&nbsp; RE Code: 1 &nbsp;·&nbsp; December 4, 2015</li>
+          <li>Discharged: Honorable · RE Code 1 · December 4, 2015.</li>
         </ul>
-      </div>
-      <div class="entry-date">Jan 2005 – Aug 2015</div>
-    </div>
+      </article>
 
+    </div>
   </section>
 
-  <!-- TWO-COLUMN: EDUCATION + AWARDS -->
-  <div class="two-col">
-
-    <section class="section">
-      <h2 class="section-title">Education</h2>
-      <div class="edu-entry">
-        <div>
-          <div class="edu-degree">B.S. Business Management</div>
-          <div class="edu-school">Minor in Leadership &nbsp;·&nbsp; University of Wyoming &nbsp;·&nbsp; Expected May 2027</div>
-        </div>
-      </div>
-      <div style="margin-top:14px;">
-        <div class="edu-degree" style="font-size:14px;">Ethical Leadership Certification</div>
-        <div class="edu-school">NASBA Center for the Public Trust</div>
-      </div>
-      <div style="margin-top:14px;">
-        <div class="edu-degree" style="font-size:14px;">ICS Supervisor Certification</div>
-        <div class="edu-school">Incident Command System &nbsp;·&nbsp; FEMA</div>
-      </div>
-    </section>
-
-    <section class="section">
-      <h2 class="section-title">Honors &amp; Awards</h2>
-      <div class="award-row">
-        <span class="award-name">IBECC Runner-Up</span>
-        <span class="award-body">International Business Ethics Case Competition</span>
-        <span class="award-year">2025</span>
-      </div>
-      <div class="award-row">
-        <span class="award-name">2nd Place — 90-Second Presentation</span>
-        <span class="award-body">IBECC Regional Round</span>
-        <span class="award-year">2025</span>
-      </div>
-      <div class="award-row">
-        <span class="award-name">1st Place — Fire Direction</span>
-        <span class="award-body">U.S. Army Artillery Competition</span>
-        <span class="award-year">2014</span>
-      </div>
-      <div class="award-row">
-        <span class="award-name">TAG Outstanding Unit Award</span>
-        <span class="award-body">Colorado National Guard Augmentation</span>
-        <span class="award-year">2008</span>
-      </div>
-    </section>
-
-  </div>
-
-  <!-- SKILLS -->
-  <section class="section">
-    <h2 class="section-title">Core Competencies</h2>
-    <div class="two-col" style="gap:20px;">
+  <!-- ═══════════════ 03 · EDUCATION ═══════════════ -->
+  <section id="education">
+    <div class="sec-head reveal"><span class="no">03</span><h2>Education &amp; Certification</h2></div>
+    <div class="duo reveal">
       <div>
-        <div class="skill-group">
-          <div class="skill-label">Leadership &amp; Management</div>
-          <div class="skill-pills">
-            <span class="pill">Servant Leadership</span>
-            <span class="pill">Team Development</span>
-            <span class="pill">Conflict Resolution</span>
-            <span class="pill">Cross-cultural Communication</span>
-            <span class="pill">Crisis Management</span>
-            <span class="pill">Field Training &amp; Evaluation</span>
-            <span class="pill">Mentorship</span>
-          </div>
-        </div>
-        <div class="skill-group">
-          <div class="skill-label">Operations &amp; Public Safety</div>
-          <div class="skill-pills">
-            <span class="pill">Incident Command (ICS)</span>
-            <span class="pill">Crisis Intervention</span>
-            <span class="pill">PREA Standards</span>
-            <span class="pill">Counter-Battery Operations</span>
-            <span class="pill">Diplomatic Protocol</span>
-            <span class="pill">Intergovernmental Relations</span>
-            <span class="pill">Small Unit Tactics</span>
-          </div>
-        </div>
-        <div class="skill-group">
-          <div class="skill-label">Instruction &amp; Communication</div>
-          <div class="skill-pills">
-            <span class="pill">Curriculum Design</span>
-            <span class="pill">Public Speaking</span>
-            <span class="pill">Technical Writing</span>
-            <span class="pill">ESL Instruction</span>
-          </div>
+        <div class="edu-item">
+          <div class="deg">B.S. Business Management</div>
+          <div class="sch">Minor in Leadership · University of Wyoming<br><span class="mono">EXPECTED MAY 2027</span></div>
         </div>
       </div>
       <div>
-        <div class="skill-group">
-          <div class="skill-label">Military &amp; Systems Knowledge</div>
-          <div class="skill-pills">
-            <span class="pill">Artillery Doctrine (U.S. &amp; Soviet)</span>
-            <span class="pill">Fire Direction Systems (FDS / AFATDS)</span>
-            <span class="pill">HIMARS / M270 MLRS</span>
-            <span class="pill">Simulation Fidelity Assessment</span>
-            <span class="pill">Airborne Operations</span>
-          </div>
+        <div class="edu-item">
+          <div class="deg" style="font-size:17px;">Ethical Leadership Certification</div>
+          <div class="sch">NASBA Center for the Public Trust</div>
         </div>
-        <div class="skill-group">
-          <div class="skill-label">Technology &amp; Analysis</div>
-          <div class="skill-pills">
-            <span class="pill">QA / Regression Testing</span>
-            <span class="pill">Software Testing Methodology</span>
-            <span class="pill">Penetration Testing</span>
-            <span class="pill">Black-box Testing</span>
-            <span class="pill">Issue Tracking &amp; Documentation</span>
-          </div>
+        <div class="edu-item">
+          <div class="deg" style="font-size:17px;">ICS Supervisor Certification</div>
+          <div class="sch">Incident Command System · FEMA</div>
         </div>
-        <div class="skill-group">
-          <div class="skill-label">Policy &amp; Ethics</div>
-          <div class="skill-pills">
-            <span class="pill">Business Ethics</span>
-            <span class="pill">Veterans Benefits &amp; Services</span>
-            <span class="pill">Corrections Law &amp; Policy</span>
-            <span class="pill">Ethical Decision-Making</span>
-            <span class="pill">Regulatory Compliance</span>
-          </div>
+        <div class="edu-item">
+          <div class="deg" style="font-size:17px;">DemingNEXT Coursework</div>
+          <div class="sch">The W. Edwards Deming Institute<br>Appreciation for a System · Understanding Variation · Red Bead Experiment<br><span class="mono">2026</span></div>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════ 04 · HONORS ═══════════════ -->
+  <section id="honors">
+    <div class="sec-head reveal"><span class="no">04</span><h2>Honors &amp; Awards</h2></div>
+    <div class="reveal">
+      <div class="honor">
+        <span class="yr">2026</span>
+        <span>
+          <span class="what">1st Place, Fastenal Supply Chain Case Competition</span>
+          <div class="ctx">Inaugural 2026 competition</div>
+        </span>
+      </div>
+      <div class="honor">
+        <span class="yr">2025</span>
+        <span>
+          <span class="what">Runner-Up, International Business Ethics Case Competition (IBECC)</span>
+          <div class="ctx">SOAR Framework on AI in lethal autonomous systems; 2nd place, 90-second presentation, regional round</div>
+        </span>
+      </div>
+      <div class="honor">
+        <span class="yr">2014</span>
+        <span>
+          <span class="what">1st Place, Fire Direction Team Competition</span>
+          <div class="ctx">U.S. Army Artillery</div>
+        </span>
+      </div>
+      <div class="honor">
+        <span class="yr">2008</span>
+        <span>
+          <span class="what">TAG Outstanding Unit Award</span>
+          <div class="ctx">Colorado National Guard · DNC augmentation</div>
+        </span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════ 05 · COMPETENCIES ═══════════════ -->
+  <section id="competencies">
+    <div class="sec-head reveal"><span class="no">05</span><h2>Core Competencies</h2></div>
+    <div class="comp-grid reveal">
+      <div class="comp">
+        <h4>Leadership &amp; Management</h4>
+        <ul><li>Servant Leadership</li><li>Team Development</li><li>Conflict Resolution</li><li>Cross-Cultural Communication</li><li>Crisis Management</li><li>Field Training &amp; Evaluation</li><li>Mentorship</li></ul>
+      </div>
+      <div class="comp">
+        <h4>Military &amp; Systems Knowledge</h4>
+        <ul><li>Artillery Doctrine (U.S. &amp; Soviet)</li><li>Fire Direction Systems (FDS / AFATDS)</li><li>HIMARS / M270 MLRS</li><li>Simulation Fidelity Assessment</li><li>Airborne Operations</li></ul>
+      </div>
+      <div class="comp">
+        <h4>Operations &amp; Public Safety</h4>
+        <ul><li>Incident Command (ICS)</li><li>Crisis Intervention</li><li>PREA Standards</li><li>Counter-Battery Operations</li><li>Diplomatic Protocol</li><li>Intergovernmental Relations</li><li>Small Unit Tactics</li></ul>
+      </div>
+      <div class="comp">
+        <h4>Technology &amp; Analysis</h4>
+        <ul><li>AI Red-Teaming / Adversarial AI Testing</li><li>LLM Security Evaluation</li><li>RAG System Vulnerability Analysis</li><li>Vendor / Supply-Chain Security Assessment</li><li>QA / Regression Testing</li><li>Penetration Testing</li><li>Black-Box Testing</li><li>AI-Augmented Workflow Integration (Claude, Cursor, GPT)</li><li>Critical Evaluation of AI Outputs</li><li>Issue Tracking &amp; Documentation</li></ul>
+      </div>
+      <div class="comp">
+        <h4>Instruction &amp; Communication</h4>
+        <ul><li>Curriculum Design</li><li>Public Speaking</li><li>Technical Writing</li><li>ESL Instruction</li></ul>
+      </div>
+      <div class="comp">
+        <h4>Policy &amp; Ethics</h4>
+        <ul><li>Business Ethics</li><li>Veterans Benefits &amp; Services</li><li>Corrections Law &amp; Policy</li><li>Ethical Decision-Making</li><li>Regulatory Compliance</li></ul>
       </div>
     </div>
   </section>
 
 </main>
 
-<footer class="footer-bar">
-  References &amp; additional materials available upon request &nbsp;·&nbsp; Robert Coe
-</footer>
+<!-- ═══════════════ 06 · COLOPHON ═══════════════ -->
+<section class="colophon" id="colophon">
+  <div class="colophon-inner">
+    <div class="sec-head"><span class="no">06</span><h2>Colophon</h2></div>
+    <p>
+      This page runs a self test each time it loads. The word in the masthead is a live
+      integrity check over the record you are reading, recomputed on every visit. The
+      counters and duration badges above were calculated during that same load.
+    </p>
+    <p>
+      A standard governs how this page was built. It is cited in the
+      <a href="https://github.com/robertbrucecoe/robertbrucecoe.github.io">source</a>,
+      for those inclined to look.
+    </p>
+    <div class="spec">
+      <div><div class="k">Self test</div><div class="v" id="spec-bit">·</div></div>
+      <div><div class="k">Integrity word</div><div class="v" id="spec-crc">·</div></div>
+      <div><div class="k">Governing document</div><div class="v">2RDU00001 REV C</div></div>
+      <div><div class="k">Heap allocations</div><div class="v">0</div></div>
+    </div>
+  </div>
+  <div class="footer">
+    References &amp; additional materials available upon request · © 2026 Robert Coe
+  </div>
+</section>
 
-<div class="action-bar">
-  <button class="action-btn" onclick="window.print()">
-    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<!-- ═══════════════ ACTION BAR ═══════════════ -->
+<div class="actions">
+  <button class="action-btn" onclick="window.print()" type="button" aria-label="Download as PDF">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <path d="M12 16l-4-4h3V4h2v8h3l-4 4zm-7 2h14v2H5v-2z"/>
     </svg>
-    Download PDF
+    <span class="btn-label">Download PDF</span>
   </button>
-  <a class="action-btn" href="mailto:?subject=Robert%20Coe%20%E2%80%94%20Resume&body=View%20Robert%20Coe%27s%20resume%20here%3A%20https%3A%2F%2Frobertbrucecoe.github.io">
-    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <a class="action-btn" aria-label="Send by email"
+     href="mailto:?subject=Robert%20Coe%20Resume&amp;body=View%20Robert%20Coe%27s%20resume%20here%3A%20https%3A%2F%2Frobertbrucecoe.github.io">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
     </svg>
-    Send to Email
+    <span class="btn-label">Send to Email</span>
   </a>
 </div>
+
+<script>
+(function () {
+  'use strict';
+  document.documentElement.classList.add('js');
+
+  /* Reveal-on-scroll */
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (en) {
+      if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); }
+    });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.reveal').forEach(function (el) { io.observe(el); });
+
+  /* Section names for the status strip */
+  var SECTIONS = ['profile', 'experience', 'education', 'honors', 'competencies', 'colophon'];
+  var LABELS = ['§ 01 · PROFILE', '§ 02 · EXPERIENCE', '§ 03 · EDUCATION',
+                '§ 04 · HONORS', '§ 05 · COMPETENCIES', '§ 06 · COLOPHON'];
+
+  var stripBit = document.getElementById('strip-bit');
+  var stripCrc = document.getElementById('strip-crc');
+  var stripSect = document.getElementById('strip-section');
+
+  function staticMode(reason) {
+    stripBit.textContent = 'STATIC MODE';
+    stripCrc.textContent = '--------';
+    if (window.console && reason) { console.info('RBC-1 static mode:', reason); }
+  }
+
+  function fmtMonths(m) {
+    var y = Math.floor(m / 12);
+    var r = m % 12;
+    var parts = [];
+    if (y > 0) { parts.push(y + (y === 1 ? ' YR' : ' YRS')); }
+    if (r > 0) { parts.push(r + (r === 1 ? ' MO' : ' MOS')); }
+    return parts.join(' ') || '< 1 MO';
+  }
+
+  if (!('WebAssembly' in window)) { staticMode('WebAssembly unavailable'); return; }
+
+  fetch('resume_core.wasm')
+    .then(function (r) {
+      if (!r.ok) { throw new Error('HTTP ' + r.status); }
+      return r.arrayBuffer();
+    })
+    .then(function (buf) { return WebAssembly.instantiate(buf); })
+    .then(function (mod) {
+      var e = mod.instance.exports;
+      var now = new Date();
+
+      /* Power-on built-in test */
+      var bit = e.rb_init(now.getFullYear(), now.getMonth() + 1);
+      var crcHex = '0x' + (e.rb_data_crc() >>> 0).toString(16).toUpperCase();
+      stripBit.textContent = (bit === 0) ? 'BIT NOMINAL' : 'BIT FAULT ' + bit;
+      stripCrc.textContent = crcHex;
+      document.getElementById('spec-bit').textContent = (bit === 0) ? 'NOMINAL' : 'FAULT CODE ' + bit;
+      document.getElementById('spec-crc').textContent = crcHex;
+
+      /* Duration badges, computed in C++ */
+      document.querySelectorAll('.dur[data-role]').forEach(function (el) {
+        var m = e.rb_role_months(parseInt(el.getAttribute('data-role'), 10));
+        if (m > 0) {
+          el.textContent = fmtMonths(m) + ' · COMPUTED';
+          el.classList.add('filled');
+        }
+      });
+
+      /* Live Eagle Dynamics months stat */
+      var edMonths = e.rb_role_months(0);
+      var edEl = document.getElementById('stat-ed');
+      edEl.setAttribute('data-target', String(edMonths));
+      document.getElementById('stat-ed-unit').textContent = 'MOS';
+
+      /* Counters eased by the wasm fixed-point smoothstep */
+      var DUR = 1400;
+      var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      document.querySelectorAll('[data-count]').forEach(function (el) {
+        var target = parseInt(el.getAttribute('data-target'), 10);
+        if (reduce) { el.textContent = String(target); return; }
+        var t0 = null;
+        function tick(ts) {
+          if (t0 === null) { t0 = ts; }
+          var el_ms = Math.min(Math.round(ts - t0), DUR);
+          el.textContent = String(e.rb_ease(el_ms, DUR, 0, target));
+          if (el_ms < DUR) { requestAnimationFrame(tick); }
+        }
+        requestAnimationFrame(tick);
+      });
+
+      /* Navigation state machine: offsets live in wasm linear memory */
+      var view = new Int32Array(e.memory.buffer, e.rb_offsets_addr(), e.rb_offsets_capacity());
+      function writeOffsets() {
+        SECTIONS.forEach(function (id, i) {
+          var el = document.getElementById(id);
+          view[i] = el ? Math.round(el.getBoundingClientRect().top + window.scrollY) : 0;
+        });
+      }
+      var rails = document.querySelectorAll('.rail a');
+      var current = -1;
+      function onScroll() {
+        var idx = e.rb_active_section(Math.round(window.scrollY), SECTIONS.length);
+        if (idx !== current) {
+          current = idx;
+          stripSect.textContent = LABELS[idx];
+          rails.forEach(function (a, i) { a.classList.toggle('active', i === idx); });
+        }
+      }
+      var pending = false;
+      window.addEventListener('scroll', function () {
+        if (!pending) {
+          pending = true;
+          requestAnimationFrame(function () { pending = false; onScroll(); });
+        }
+      }, { passive: true });
+      window.addEventListener('resize', function () { writeOffsets(); onScroll(); });
+      writeOffsets();
+      onScroll();
+    })
+    .catch(function (err) { staticMode(err && err.message); });
+})();
+</script>
 
 </body>
 </html>
