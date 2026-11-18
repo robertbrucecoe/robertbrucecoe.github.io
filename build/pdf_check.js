@@ -44,6 +44,8 @@ const minWidthUse = 0.9;
 // width and scaled onto the paper) measures 0.79. The window fails any shrink past about
 // 13 percent.
 const minScale = 1.45;
+// Word-box height over em size for an unshrunk print, from the same calibration.
+const boxToEm = 1.66;
 const maxScale = 1.9;
 // Slack, in points, for glyph overhang past a margin line.
 const edgeTolerance = 1.5;
@@ -166,9 +168,22 @@ while (wm) {
 check("PDF has extractable text", words.length > 0, `${words.length} words`);
 if (words.length === 0) { process.exit(1); }
 
-const outside = words.filter((w) =>
-  w.x0 < printable.left - edgeTolerance || w.x1 > printable.right + edgeTolerance ||
-  w.y0 < printable.top - edgeTolerance || w.y1 > printable.bottom + edgeTolerance);
+const heights = words.map((w) => w.y1 - w.y0).sort((a, b) => a - b);
+const medianHeight = heights[Math.floor(heights.length / 2)];
+const scale = medianHeight / bodySize;
+check("text printed at its declared size", scale >= minScale && scale <= maxScale,
+  `median word height ${medianHeight.toFixed(2)}pt / body ${bodySize}pt = ` +
+  `${scale.toFixed(2)} (window ${minScale} to ${maxScale})`);
+
+// Poppler's word box is the font's full ascent plus descent, which stands taller than the
+// em box the line is laid out with, by boxToEm. Vertically, the em box, centered in the
+// word box, is what must sit inside the margins.
+const outside = words.filter((w) => {
+  const half = (w.y1 - w.y0) / boxToEm / 2;
+  const mid = (w.y0 + w.y1) / 2;
+  return w.x0 < printable.left - edgeTolerance || w.x1 > printable.right + edgeTolerance ||
+    mid - half < printable.top - edgeTolerance || mid + half > printable.bottom + edgeTolerance;
+});
 check("every word inside the page margins", outside.length === 0,
   `${outside.length} outside`);
 outside.slice(0, 8).forEach((w) => {
@@ -185,13 +200,6 @@ check("text spans the printable width",
   maxX - printable.left >= minWidthUse * printableWidth,
   `${(100 * (maxX - printable.left) / printableWidth).toFixed(0)}% of ` +
   `${printableWidth.toFixed(0)}pt (needs ${100 * minWidthUse}%)`);
-
-const heights = words.map((w) => w.y1 - w.y0).sort((a, b) => a - b);
-const medianHeight = heights[Math.floor(heights.length / 2)];
-const scale = medianHeight / bodySize;
-check("text printed at its declared size", scale >= minScale && scale <= maxScale,
-  `median word height ${medianHeight.toFixed(2)}pt / body ${bodySize}pt = ` +
-  `${scale.toFixed(2)} (window ${minScale} to ${maxScale})`);
 
 const rawText = run("pdftotext", ["-raw", pdfPath, "-"]);
 const pdfKey = key(rawText);

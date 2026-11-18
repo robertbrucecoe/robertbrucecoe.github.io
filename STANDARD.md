@@ -37,6 +37,7 @@ itself. The discipline and the deployment target are the same idea expressed twi
 | Presentation | `index.html` | Complete and readable on its own. Scripting enhances it and never gates it. |
 | Logic | `src/Resume_core.cpp` → `resume_core.wasm` | Canonical record, CRC-32 integrity word, duration arithmetic, fixed-point easing, navigation state. Deterministic, integer-only, bounded. |
 | Verification | `build/build.ps1`, `build/verify.js`, `build/module_check.js`, this document | Compile gate, static analysis, a host-side harness for the module's built-in test, and a gate that reads the binary's interface. |
+| Print | `resume.pdf`, rendered by CI from `index.html` | The printed resume behind Download PDF. Rendered with a pinned browser after every gate passes, read back by a print gate, and published only if it passes. |
 
 On every page load the module runs a power-on built-in test in the manner of an avionics
 line-replaceable unit:
@@ -67,7 +68,10 @@ displayed in the masthead is the live CRC-32 of the canonical record embedded in
 | Module interface gate | `build/module_check.js`: reads the binary and requires no imports, no start function, exactly the declared function exports, no memory, table, or global export, a memory maximum equal to its initial size, and no `memory.grow` instruction. Run against both the rebuild and the committed binary |
 | Memory-safety gate | second module built with `-fsanitize=undefined,bounds -fsanitize-trap=all`; traps on any UB or out-of-bounds access |
 | Verification harness | `build/verify.js` under node; all checks required to pass, run against both the shipped and the instrumented module |
-| Continuous verification | `.github/workflows/verify.yml`: every push rebuilds from source with a pinned wasi-sdk whose download is checked against a recorded SHA-256 before it is unpacked, runs all gates, functionally verifies the committed binary, and audits the page for third-party references |
+| Continuous verification | `.github/workflows/verify.yml`: every pull request and every deploy rebuilds from source with a pinned wasi-sdk whose download is checked against a recorded SHA-256 before it is unpacked, runs all gates, functionally verifies the committed binary, audits the page for third-party references, and renders and gates the printed resume |
+| Print renderer | Chrome for Testing headless shell, pinned by version in `verify.yml` and checked against a recorded SHA-256 before it is unpacked. `build/print_pdf.sh` serves the page from localhost so the module loads, and prints it with the page's own print stylesheet, which is written in paper units only |
+| Print gate | `build/pdf_check.js`: reads `resume.pdf` with poppler and requires US Letter pages, no more than 3 of them, every word inside the declared margins, text spanning the printable width, text at its declared size rather than shrunk to fit, every heading, job title, and bullet in `index.html`, one computed duration per role, a NOMINAL self test, the expected integrity word, and the page's own fonts embedded |
+| Deployment | `.github/workflows/deploy.yml`: on every push to `main` and on the 1st of each month, runs `verify.yml` in full, then publishes the page, the module, the fonts, and the gated PDF to GitHub Pages. Nothing is published if any gate fails. The monthly run keeps the durations computed into the PDF current |
 
 **Note on AV Rule 8.** The rule requires ISO/IEC 14882:2002. The closest mode in a modern
 clang is `-std=c++03`, which is ISO/IEC 14882:2003, the technical corrigendum of the 2002
@@ -171,7 +175,8 @@ no tracking pixel, no external script, no CDN. A visitor's address is seen only 
 host that serves the page (GitHub Pages), which is unavoidable for any hosted site. There
 are outbound links (GitHub, LinkedIn), and following one is the visitor's choice; nothing
 on this page phones anywhere on its own. CI enforces this with a third-party reference
-audit on every push.
+audit on every pull request and every deploy. The downloadable PDF is served from the same
+origin and is rendered from the same page.
 
 ## Limitations
 
@@ -258,6 +263,18 @@ Rule 3 was not measured at all; clang-tidy skipped the headers; CI pinned the to
 version but never verified the download; and the Linux build could not replace the
 committed binary, so the maintenance procedure could not be completed there. Each new gate
 was shown to fail on a deliberately violating copy of the source before it was accepted.
+
+**Round 5 (print).** Download PDF opened the browser's print dialog, and the first real
+print of the page failed: on a laptop, Chrome laid the page out at desktop width and shrank
+it onto the paper, producing a narrow column of roughly 6 point text across three pages.
+The print stylesheet depended on the width of the screen, and something on the page was
+wider than the paper. The print stylesheet now restates every width-dependent rule in
+points and removes the decoration that extended past the column, so nothing can overflow
+and the print is the same from any device. Download PDF now serves a PDF that CI renders
+with a pinned browser and reads back with a print gate before publishing, and the site is
+deployed by a workflow that publishes nothing unless every gate passes. The print gate was
+calibrated on both prints and was shown to fail the shrunken one, and to fail on a missing
+bullet, a wrong integrity word, and text outside the margins.
 
 ## Reproducing the verification
 
