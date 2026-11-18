@@ -58,9 +58,11 @@ Write-Host "[3/7] Contrast gate (WCAG 2.1 AA)..."
 node (Join-Path $PSScriptRoot "contrast_check.js")
 if ($LASTEXITCODE -ne 0) { throw "Contrast gate reported failures." }
 
-Write-Host "[4/7] Static analysis (clang-tidy, fatal outside the documented findings)..."
+Write-Host "[4/7] Static analysis (clang-tidy, fatal outside the documented findings) and complexity..."
 node (Join-Path $PSScriptRoot "analysis_check.js") $tidy
 if ($LASTEXITCODE -ne 0) { throw "Static analysis reported findings outside the accepted list." }
+node (Join-Path $PSScriptRoot "complexity_check.js") $clang
+if ($LASTEXITCODE -ne 0) { throw "A function exceeds the cyclomatic complexity limit (AV Rule 3)." }
 
 Write-Host "[5/7] Memory-safety build (UBSan + bounds, trap-on-violation) and verification..."
 # A separate instrumented module. -fsanitize-trap routes every detected undefined behavior

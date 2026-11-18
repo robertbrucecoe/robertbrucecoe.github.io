@@ -35,7 +35,11 @@ Procedure:
    (`data-role="N"`) and any known-answer values in `run_built_in_test`.
 3. Build:
    - Windows: `$env:WASI_SDK = "<sdk path>"; .\build\build.ps1`
-   - Linux or Mac: `WASI_SDK=<sdk path> bash build/build.sh`
+   - Linux or Mac: `WASI_SDK=<sdk path> bash build/build.sh --update`
+
+   On Windows the script always writes `resume_core.wasm`. On Linux or Mac, `--update`
+   does the same, but only after every gate has passed on the rebuild. Without it the
+   script checks your committed binary and leaves it alone, which is what CI does.
 4. The verifier will FAIL on the integrity word and print the actual new CRC. That is the
    procedure working, not breaking: the record changed, so its checksum changed.
 5. Copy the new value into `EXPECTED_CRC` at the top of `build/verify.js`, and update the

@@ -13,6 +13,9 @@ on:
 env:
   WASI_SDK_VERSION: "33"
   WASI_SDK_RELEASE: "wasi-sdk-33.0-x86_64-linux"
+  # SHA-256 of the release archive. The download is checked against it before it is
+  # unpacked, so the compiler that builds the shipped module is the one this file names.
+  WASI_SDK_SHA256: "0ba8b5bfaeb2adf3f29bab5841d76cf5318ab8e1642ea195f88baba1abd47bce"
 
 jobs:
   verify:
@@ -25,13 +28,14 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/wasi-sdk
-          key: ${{ env.WASI_SDK_RELEASE }}
+          key: ${{ env.WASI_SDK_RELEASE }}-${{ env.WASI_SDK_SHA256 }}
 
       - name: Install wasi-sdk ${{ env.WASI_SDK_VERSION }} (pinned)
         if: steps.cache-sdk.outputs.cache-hit != 'true'
         run: |
-          curl -sL -o /tmp/wasi-sdk.tar.gz \
+          curl -fsSL -o /tmp/wasi-sdk.tar.gz \
             "https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_SDK_VERSION}/${WASI_SDK_RELEASE}.tar.gz"
+          echo "${WASI_SDK_SHA256}  /tmp/wasi-sdk.tar.gz" | sha256sum -c -
           mkdir -p ~/wasi-sdk
           tar -xzf /tmp/wasi-sdk.tar.gz -C ~/wasi-sdk --strip-components=1
 

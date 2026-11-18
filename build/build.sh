@@ -1,7 +1,23 @@
 #!/usr/bin/env bash
 # build.sh — CI twin of build.ps1. Same flags, same gates, same order.
 # Requires WASI_SDK pointing at a wasi-sdk root (clang++, clang-tidy in bin/).
+#
+# Usage: bash build/build.sh            rebuild and verify; never touches resume_core.wasm
+#        bash build/build.sh --update   also replace resume_core.wasm with the rebuild,
+#                                       only after every gate has passed on the rebuild
+# CI runs without --update, so a stale committed binary still fails the build there.
+# build.ps1 always writes resume_core.wasm, which matches --update.
 set -euo pipefail
+
+UPDATE=0
+if [ "$#" -gt 0 ]; then
+  if [ "$1" = "--update" ] && [ "$#" -eq 1 ]; then
+    UPDATE=1
+  else
+    echo "usage: bash build/build.sh [--update]" >&2
+    exit 2
+  fi
+fi
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 CLANG="$WASI_SDK/bin/clang++"
@@ -39,8 +55,9 @@ node "$ROOT/build/style_check.js"
 echo "[3/7] Contrast gate..."
 node "$ROOT/build/contrast_check.js"
 
-echo "[4/7] Static analysis (fatal outside the documented findings)..."
+echo "[4/7] Static analysis (fatal outside the documented findings) and complexity..."
 node "$ROOT/build/analysis_check.js" "$TIDY"
+node "$ROOT/build/complexity_check.js" "$CLANG"
 
 echo "[5/7] Memory-safety build and verification..."
 SAFE="$ROOT/resume_core.san.wasm"
@@ -50,12 +67,19 @@ node "$ROOT/build/strip_memory_export.js" "$SAFE" "$SAFE"
 node "$ROOT/build/verify.js" "$SAFE"
 rm -f "$SAFE"
 
-echo "[6/7] Module interface gate: rebuilt module, then the committed module..."
+echo "[6/7] Module interface gate on the rebuilt module..."
 node "$ROOT/build/module_check.js" "$REBUILT"
-node "$ROOT/build/module_check.js" "$OUT"
 
-echo "[7/7] Built-in test: rebuilt module, then the committed module..."
+echo "[7/7] Built-in test on the rebuilt module..."
 node "$ROOT/build/verify.js" "$REBUILT"
+
+if [ "$UPDATE" -eq 1 ]; then
+  cp "$REBUILT" "$OUT"
+  echo "Updated resume_core.wasm from the verified rebuild."
+fi
+
+echo "Committed module: interface gate and built-in test..."
+node "$ROOT/build/module_check.js" "$OUT"
 node "$ROOT/build/verify.js" "$OUT"
 
 if cmp -s "$REBUILT" "$OUT"; then

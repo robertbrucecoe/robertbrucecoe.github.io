@@ -59,14 +59,15 @@ displayed in the masthead is the live CRC-32 of the canonical record embedded in
 | Language mode | `-std=c++03` (see note on AV Rule 8 below) |
 | Environment | `-nostdlib -ffreestanding -fno-exceptions -fno-rtti` |
 | Diagnostics policy (AV Rule 218) | `-Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion -Wshadow -Wold-style-cast -Werror`. Every diagnostic is fatal. |
-| Static analysis | clang-tidy: `clang-analyzer-*`, `bugprone-*`, magic-number, goto, recursion, and function-size checks. Fatal: `build/analysis_check.js` runs clang-tidy and fails the build on any finding outside the accepted list below, or if an accepted finding stops appearing |
+| Static analysis | clang-tidy: `clang-analyzer-*`, `bugprone-*`, magic-number, goto, recursion, and function-size checks. Function-size limits set to 200 lines and 7 parameters (clang-tidy's defaults set neither). Headers are analyzed as well as the source. Fatal: `build/analysis_check.js` runs clang-tidy and fails the build on any finding outside the accepted list below, or if an accepted finding stops appearing |
+| Complexity gate | `build/complexity_check.js`: McCabe cyclomatic complexity (if, for, while, do, case, `?:`, `&&`, `||`, plus one) for every function, from the compiler's own parse tree; fails above 20 (AV Rule 3). Rev C defines its counting method in Appendix A; where that differs, this gate's definition is the one stated here |
 | Style gate | `build/style_check.js`: measures AV Rules 9 (ASCII), 14 (uppercase suffixes), 41 (line length), 43 (no tabs), 126 (// comments) on every build |
 | Contrast gate | `build/contrast_check.js`: every text/background pair on the page measured against WCAG 2.1 AA (4.5:1) |
 | Linking | `-Wl,--no-entry -Wl,--max-memory=131072`: linear memory fixed at 2 pages (128 KiB) with no room to grow. wasm-ld exports the memory by default and has no switch to stop it, so `build/strip_memory_export.js` removes that one export entry after every link and fails the build unless it removed exactly one |
 | Module interface gate | `build/module_check.js`: reads the binary and requires no imports, no start function, exactly the declared function exports, no memory, table, or global export, a memory maximum equal to its initial size, and no `memory.grow` instruction. Run against both the rebuild and the committed binary |
 | Memory-safety gate | second module built with `-fsanitize=undefined,bounds -fsanitize-trap=all`; traps on any UB or out-of-bounds access |
 | Verification harness | `build/verify.js` under node; all checks required to pass, run against both the shipped and the instrumented module |
-| Continuous verification | `.github/workflows/verify.yml`: every push rebuilds from source with a pinned wasi-sdk, runs all gates, functionally verifies the committed binary, and audits the page for third-party references |
+| Continuous verification | `.github/workflows/verify.yml`: every push rebuilds from source with a pinned wasi-sdk whose download is checked against a recorded SHA-256 before it is unpacked, runs all gates, functionally verifies the committed binary, and audits the page for third-party references |
 
 **Note on AV Rule 8.** The rule requires ISO/IEC 14882:2002. The closest mode in a modern
 clang is `-std=c++03`, which is ISO/IEC 14882:2003, the technical corrigendum of the 2002
@@ -80,7 +81,7 @@ throughout the source and are not repeated per rule here.
 
 | AV Rule | Requirement | Where honored |
 |---|---|---|
-| 1, 3 | Functions under 200 LSLOC, cyclomatic complexity 20 or less | Largest function is `run_built_in_test`, four independent if/else blocks |
+| 1, 3 | Functions under 200 LSLOC, cyclomatic complexity 20 or less | Rule 1 gated by clang-tidy at 200 physical lines per function, which is stricter than logical lines. Rule 3 gated by `complexity_check.js` (McCabe: decision points plus one, from the compiler's parse tree). Highest today is `run_built_in_test` at 8 |
 | 8 | ISO/IEC 14882:2002 | `-std=c++03`; see note above |
 | 9 | Basic source character set only | All source files are 7-bit ASCII; gated by `style_check.js` |
 | 14 | Uppercase literal suffixes | All unsigned literals use `U`; gated by `style_check.js` |
@@ -96,10 +97,10 @@ throughout the source and are not repeated per rule here.
 | 65, 67 | Structs for invariant-free aggregates; public data in structs only | `Role_record` |
 | 98 | Every nonlocal name in a namespace | Everything lives in `namespace Rbc`; the module has no `main` |
 | 107 | Functions declared at file scope | All helpers are file-scope statics |
-| 110 | No more than 7 parameters | Maximum is 4 (`rb_ease`, `months_inclusive`) |
+| 110 | No more than 7 parameters | Maximum is 4 (`rb_ease`, `months_inclusive`); gated by clang-tidy at 7 |
 | 111 | No pointers or references to non-static locals returned | All returns are by value |
 | 113, 114 | Single point of exit, through `return` | Every function uses the single-exit result pattern |
-| 119 | No recursion, direct or indirect | Verified by inspection and by `misc-no-recursion` |
+| 119 | No recursion, direct or indirect | Gated by `misc-no-recursion` under the fatal static-analysis gate |
 | 126, 127 | C++ comments only; no commented-out code | Rule 126 gated by `style_check.js`; Rule 127 by inspection |
 | 130, 132, 133, 134 | Comment density, declaration comments, file headers, documented assumptions | Throughout |
 | 135 | No identifier hiding | `-Wshadow` is fatal |
@@ -250,7 +251,13 @@ when it reports warnings, and the scripts did not read its findings. A gate now 
 fails on any finding outside the three documented above, and fails if one of those stops
 appearing. Finally, the source headers called the built-in test continuous; in avionics
 usage continuous BIT re-runs while the system operates, and this one runs once per load,
-so the headers now call it a power-on test, as this document always did.
+so the headers now call it a power-on test, as this document always did. An audit of the
+build against this document then found four more gaps, now closed: the function-size check
+had no line or parameter limit, so AV Rules 1 and 110 were met only by inspection, and AV
+Rule 3 was not measured at all; clang-tidy skipped the headers; CI pinned the toolchain
+version but never verified the download; and the Linux build could not replace the
+committed binary, so the maintenance procedure could not be completed there. Each new gate
+was shown to fail on a deliberately violating copy of the source before it was accepted.
 
 ## Reproducing the verification
 
@@ -260,6 +267,8 @@ $env:WASI_SDK = "<path to wasi-sdk>"
 ```
 
 The script compiles the shipped module with the full fatal-diagnostics flag set, runs static
-analysis, builds and runs the instrumented memory-safety module, runs the module interface
-gate, then runs the verification harness against the shipped module. The page itself re-runs the module's built-in test on
+analysis and the complexity gate, builds and runs the instrumented memory-safety module,
+runs the module interface gate, then runs the verification harness against the shipped
+module. On Linux or Mac, run `WASI_SDK=<path> bash build/build.sh` to verify, or add
+`--update` to replace the committed module with a rebuild that has passed every gate. The page itself re-runs the module's built-in test on
 every load; the result is in the top-right corner of the masthead.

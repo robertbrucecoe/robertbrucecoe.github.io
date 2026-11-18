@@ -25,6 +25,19 @@ const checks = [
   "readability-function-cognitive-complexity", "misc-no-recursion"
 ].join(",");
 
+// Limits that make the function-size check measure JSF AV rules. clang-tidy's defaults set
+// no line or parameter limit, which would leave the check inert.
+//   LineThreshold 200    - AV Rule 1 (no more than 200 logical source lines per function).
+//                          clang-tidy counts physical lines, comments and blanks included,
+//                          which is stricter than logical lines, so passing it implies Rule 1.
+//   ParameterThreshold 7 - AV Rule 110 (functions with more than 7 arguments will not be used)
+const config = "{CheckOptions: {readability-function-size.LineThreshold: 200, " +
+  "readability-function-size.ParameterThreshold: 7}}";
+
+// Report findings in headers too, not only in the source file. The build is freestanding
+// with no system headers, so every header clang-tidy sees is one of the project's own.
+const headerFilter = ".*";
+
 // Each accepted finding is documented, with its mitigation, in STANDARD.md.
 const accepted = [
   { check: "bugprone-easily-swappable-parameters", fn: "clamp_int32", count: 1 },
@@ -37,7 +50,7 @@ if (!tidy) {
 }
 
 const result = childProcess.spawnSync(tidy, [
-  src, `-checks=${checks}`, "-quiet", "--",
+  src, `-checks=${checks}`, `-config=${config}`, `-header-filter=${headerFilter}`, "-quiet", "--",
   "--target=wasm32", "-std=c++03", "-nostdlib", "-ffreestanding",
   "-fno-exceptions", "-fno-rtti", "-I", inc
 ], { encoding: "utf8" });
