@@ -1,14 +1,14 @@
 # Continuous verification for the RBC-1 logic module and the page's quality gates.
-# Every push and pull request rebuilds the module from source with the pinned
-# toolchain and runs all seven gates; the committed binary must pass the same
-# functional verification as the rebuild. A red X here means the masthead's
-# claims are no longer backed.
+# Every pull request, and every deploy (.github/workflows/deploy.yml calls this file),
+# rebuilds the module from source with the pinned toolchain and runs all seven gates;
+# the committed binary must pass the same functional verification as the rebuild. The
+# print job renders the resume PDF with a pinned Chrome and gates it. A red X here means
+# the masthead's claims are no longer backed.
 name: verify
 
 on:
-  push:
-    branches: [main]
   pull_request:
+  workflow_call:
 
 env:
   WASI_SDK_VERSION: "33"
@@ -16,6 +16,10 @@ env:
   # SHA-256 of the release archive. The download is checked against it before it is
   # unpacked, so the compiler that builds the shipped module is the one this file names.
   WASI_SDK_SHA256: "0ba8b5bfaeb2adf3f29bab5841d76cf5318ab8e1642ea195f88baba1abd47bce"
+  # The renderer for the printed resume: Chrome for Testing's headless shell, pinned by
+  # version and checked against the SHA-256 of its archive the same way.
+  CHROME_VERSION: "153.0.8010.12"
+  CHROME_SHA256: "0000000000000000000000000000000000000000000000000000000000000000"
 
 jobs:
   verify:
@@ -55,3 +59,51 @@ jobs:
           ! grep -nE "url\((['\"]?)https?://" index.html \
             || (echo "External url() reference found in index.html" && exit 1)
           echo "No third-party resource references. The page provides; it does not collect."
+
+  print:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Chrome
+        id: cache-chrome
+        uses: actions/cache@v4
+        with:
+          path: ~/chrome
+          key: chrome-headless-shell-${{ env.CHROME_VERSION }}-${{ env.CHROME_SHA256 }}
+
+      - name: Install Chrome ${{ env.CHROME_VERSION }} (pinned)
+        if: steps.cache-chrome.outputs.cache-hit != 'true'
+        run: |
+          curl -fsSL -o /tmp/chrome.zip \
+            "https://storage.googleapis.com/chrome-for-testing-public/${CHROME_VERSION}/linux64/chrome-headless-shell-linux64.zip"
+          sha256sum /tmp/chrome.zip
+          echo "${CHROME_SHA256}  /tmp/chrome.zip" | sha256sum -c -
+          mkdir -p ~/chrome
+          unzip -q /tmp/chrome.zip -d ~/chrome
+
+      - name: Install poppler (PDF reader for the print gate)
+        run: |
+          command -v pdftotext || (sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils)
+
+      - name: Render the resume PDF
+        run: |
+          CHROME=~/chrome/chrome-headless-shell-linux64/chrome-headless-shell bash build/print_pdf.sh resume.pdf
+
+      - name: Print gate
+        run: node build/pdf_check.js resume.pdf
+
+      - name: Show the printed layout
+        if: always()
+        run: |
+          test -s resume.pdf || exit 0
+          pdfinfo resume.pdf
+          pdftotext -layout resume.pdf -
+
+      - name: Keep the PDF
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: resume-pdf
+          path: resume.pdf
+          if-no-files-found: ignore

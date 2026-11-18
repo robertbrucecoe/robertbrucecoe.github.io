@@ -698,19 +698,90 @@
   }
 
   /* ────────────────────────── PRINT ────────────────────────── */
+  /* The printed page is laid out in paper units only. Every rule above that depends on the
+     width of the screen (vw sizes, max-width breakpoints, the hero circles that extend past
+     the column) is restated here in points, so the browser never meets content wider than
+     the paper. Content wider than the paper is what makes a browser shrink the whole page
+     to fit, and the shrunken layout then picks up the desktop rules. With nothing able to
+     overflow, the print is the same whatever device or window it is printed from.
+     build/pdf_check.js reads the @page margins and the .entry li size from this block. */
   @media print {
+    @page { size: letter; margin: 0.5in 0.6in; }
+
     .strip, .rail, .actions { display: none; }
+    .hero::before, .hero::after { display: none; }
     html.js .reveal { opacity: 1; transform: none; transition: none; }
-    body { background: white; }
-    .hero { padding-top: 40px; }
-    .colophon { background: white; color: var(--slate); border-top: 1px solid var(--hairline); }
+    html, body { background: white; }
+    body { line-height: 1.4; }
+
+    .page, .colophon-inner { max-width: none; margin: 0; padding: 0; }
+
+    /* Profile */
+    .hero { padding: 0; overflow: visible; }
+    .doc-line { font-size: 7pt; margin-bottom: 6pt; }
+    .name { font-size: 28pt; line-height: 1; }
+    .name br { display: none; }
+    .name em::before { content: ' '; }
+    .role-line { margin-top: 6pt; font-size: 7.5pt; gap: 8pt; }
+    .role-line::before { width: 28pt; }
+    .lede { margin-top: 9pt; max-width: none; font-size: 10.5pt; line-height: 1.45; }
+    .contact-row { margin-top: 7pt; gap: 16pt; font-size: 8pt; }
+    .stats { margin-top: 10pt; grid-template-columns: repeat(3, 1fr); }
+    .stat { padding: 6pt 12pt 0 0; }
+    .stat + .stat { padding: 6pt 0 0 12pt; margin-top: 0; border-top: none; border-left: 1px solid var(--hairline-2); }
+    .stat .num { font-size: 18pt; }
+    .stat .num sub { font-size: 7.5pt; }
+    .stat .lbl { margin-top: 3pt; font-size: 6.5pt; }
+
+    /* Section chrome */
+    .sec-head { margin: 16pt 0 9pt; gap: 9pt; break-after: avoid; }
+    .sec-head .no { font-size: 7.5pt; }
+    .sec-head h2 { font-size: 15pt; }
+
+    /* Experience */
+    .xp { padding-left: 13pt; }
+    .entry { padding-bottom: 10pt; }
+    .entry:last-child { padding-bottom: 2pt; }
+    .entry::before { left: -16.5pt; top: 4.5pt; width: 6pt; height: 6pt; border-width: 1pt; }
+    .entry-top { gap: 2pt 10pt; break-after: avoid; }
+    .entry h3 { font-size: 11.5pt; }
+    .entry .org { font-size: 7.5pt; }
+    .entry .when { margin-top: 2pt; gap: 8pt; font-size: 7.5pt; break-after: avoid; }
+    .entry .dur { padding: 0 5pt; }
+    .entry ul { margin-top: 4pt; }
+    .entry li { padding-left: 11pt; margin-bottom: 2.5pt; font-size: 9.5pt; line-height: 1.38; break-inside: avoid; }
+
+    /* Education and honors */
+    .duo { grid-template-columns: 1fr 1fr; gap: 24pt; }
+    .edu-item { margin-bottom: 7pt; break-inside: avoid; }
+    .edu-item .deg { font-size: 11pt; }
+    .edu-item .sch { margin-top: 1pt; font-size: 9pt; }
+    .edu-item .sch .mono { font-size: 7.5pt; }
+    .honor { grid-template-columns: 30pt 1fr; gap: 8pt; padding: 5pt 0; break-inside: avoid; }
+    .honor .yr { font-size: 7.5pt; padding-top: 2pt; }
+    .honor .what { font-size: 9.5pt; }
+    .honor .ctx { font-size: 8.5pt; margin-top: 0; }
+
+    /* Competencies */
+    .comp-grid { grid-template-columns: 1fr 1fr; gap: 8pt 24pt; }
+    .comp { break-inside: avoid; }
+    .comp h4 { font-size: 7pt; margin-bottom: 3pt; gap: 8pt; }
+    .comp li { font-size: 9pt; line-height: 1.6; }
+    .comp li + li::before { margin: 0 5pt 0 4pt; }
+
+    /* Colophon, printed dark on white */
+    .colophon { margin-top: 16pt; background: white; color: var(--slate); border-top: 1px solid var(--hairline); break-inside: avoid; }
+    .colophon .sec-head { margin: 10pt 0 7pt; }
     .colophon .sec-head h2 { color: var(--ink); }
-    .spec .v { color: var(--navy); }
+    .colophon p { max-width: none; font-size: 9pt; line-height: 1.45; margin-bottom: 5pt; }
     .colophon p strong { color: var(--ink); }
     .colophon p a { color: var(--gold-text); }
+    .spec { margin: 7pt 0 0; grid-template-columns: repeat(4, 1fr); }
+    .spec div { background: white; padding: 4pt 7pt; }
+    .spec .k { font-size: 6.5pt; margin-bottom: 2pt; }
+    .spec .v { font-size: 9pt; color: var(--navy); }
     .spec .k, .footer { color: var(--slate); }
-    .spec div { background: white; }
-    @page { margin: 0.55in; }
+    .footer { padding: 8pt 0 0; font-size: 7pt; }
   }
 </style>
 </head>
@@ -1008,12 +1079,12 @@
 
 <!-- ═══════════════ ACTION BAR ═══════════════ -->
 <div class="actions">
-  <button class="action-btn" onclick="window.print()" type="button" aria-label="Download as PDF">
+  <a class="action-btn" href="resume.pdf" download="Robert_Coe_Resume.pdf" aria-label="Download as PDF">
     <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <path d="M12 16l-4-4h3V4h2v8h3l-4 4zm-7 2h14v2H5v-2z"/>
     </svg>
     <span class="btn-label">Download PDF</span>
-  </button>
+  </a>
   <a class="action-btn" aria-label="Send by email"
      href="mailto:?subject=Robert%20Coe%20Resume&amp;body=View%20Robert%20Coe%27s%20resume%20here%3A%20https%3A%2F%2Frobertbrucecoe.github.io">
     <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -1102,17 +1173,27 @@
       /* Counters eased by the wasm fixed-point smoothstep */
       var DUR = 1400;
       var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var settled = false;
       document.querySelectorAll('[data-count]').forEach(function (el) {
         var target = parseInt(el.getAttribute('data-target'), 10);
         if (reduce) { el.textContent = String(target); return; }
         var t0 = null;
         function tick(ts) {
+          if (settled) { return; }
           if (t0 === null) { t0 = ts; }
           var el_ms = Math.min(Math.round(ts - t0), DUR);
           el.textContent = String(e.rb_ease(el_ms, DUR, 0, target));
           if (el_ms < DUR) { requestAnimationFrame(tick); }
         }
         requestAnimationFrame(tick);
+      });
+
+      /* A print started mid-count shows the final values, not a frame of the animation. */
+      window.addEventListener('beforeprint', function () {
+        settled = true;
+        document.querySelectorAll('[data-count]').forEach(function (el) {
+          el.textContent = el.getAttribute('data-target');
+        });
       });
 
       /* Navigation state machine: section tops are pushed into the module by value;
