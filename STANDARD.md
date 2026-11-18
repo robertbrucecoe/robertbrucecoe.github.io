@@ -59,7 +59,7 @@ displayed in the masthead is the live CRC-32 of the canonical record embedded in
 | Language mode | `-std=c++03` (see note on AV Rule 8 below) |
 | Environment | `-nostdlib -ffreestanding -fno-exceptions -fno-rtti` |
 | Diagnostics policy (AV Rule 218) | `-Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion -Wshadow -Wold-style-cast -Werror`. Every diagnostic is fatal. |
-| Static analysis | clang-tidy: `clang-analyzer-*`, `bugprone-*`, magic-number, goto, recursion, and function-size checks |
+| Static analysis | clang-tidy: `clang-analyzer-*`, `bugprone-*`, magic-number, goto, recursion, and function-size checks. Fatal: `build/analysis_check.js` runs clang-tidy and fails the build on any finding outside the accepted list below, or if an accepted finding stops appearing |
 | Style gate | `build/style_check.js`: measures AV Rules 9 (ASCII), 14 (uppercase suffixes), 41 (line length), 43 (no tabs), 126 (// comments) on every build |
 | Contrast gate | `build/contrast_check.js`: every text/background pair on the page measured against WCAG 2.1 AA (4.5:1) |
 | Linking | `-Wl,--no-entry -Wl,--max-memory=131072`: linear memory fixed at 2 pages (128 KiB) with no room to grow. wasm-ld exports the memory by default and has no switch to stop it, so `build/strip_memory_export.js` removes that one export entry after every link and fails the build unless it removed exactly one |
@@ -196,7 +196,10 @@ worth stating plainly.
 clang-tidy reports three instances of `bugprone-easily-swappable-parameters` (adjacent
 parameters of the same type, in `clamp_int32` and `months_inclusive`). The findings are
 acknowledged and accepted; the mitigation is the documented parameter contracts in
-`Resume_core.h` and the known-answer tests that would catch a transposition.
+`Resume_core.h` and the known-answer tests that would catch a transposition. These three
+are the only findings the build accepts. `build/analysis_check.js` matches them by check and
+function name and fails the build on any other finding, so this list is measured, not
+asserted.
 
 ## Revision history
 
@@ -241,7 +244,13 @@ memory. No JSF AV rule was broken: the standard governs the C++ source, and the 
 a linker artifact. The source was not changed. The fix is in the build: linear memory is
 now fixed at 2 pages with no room to grow, a post-link step removes the memory export, and
 a seventh gate (`module_check.js`) reads the binary on every build and fails if any of
-those properties is lost. The built-in test and the integrity word are unchanged.
+those properties is lost. The built-in test and the integrity word are unchanged. The
+same review found that static analysis could never fail the build: clang-tidy exits zero
+when it reports warnings, and the scripts did not read its findings. A gate now runs it,
+fails on any finding outside the three documented above, and fails if one of those stops
+appearing. Finally, the source headers called the built-in test continuous; in avionics
+usage continuous BIT re-runs while the system operates, and this one runs once per load,
+so the headers now call it a power-on test, as this document always did.
 
 ## Reproducing the verification
 

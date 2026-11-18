@@ -39,11 +39,8 @@ node "$ROOT/build/style_check.js"
 echo "[3/7] Contrast gate..."
 node "$ROOT/build/contrast_check.js"
 
-echo "[4/7] Static analysis..."
-"$TIDY" "$SRC" \
-  -checks="clang-analyzer-*,bugprone-*,cppcoreguidelines-avoid-goto,cppcoreguidelines-avoid-magic-numbers,readability-function-size,readability-function-cognitive-complexity,misc-no-recursion" \
-  -quiet \
-  -- --target=wasm32 -std=c++03 -nostdlib -ffreestanding -fno-exceptions -fno-rtti -I "$INC" || true
+echo "[4/7] Static analysis (fatal outside the documented findings)..."
+node "$ROOT/build/analysis_check.js" "$TIDY"
 
 echo "[5/7] Memory-safety build and verification..."
 SAFE="$ROOT/resume_core.san.wasm"
