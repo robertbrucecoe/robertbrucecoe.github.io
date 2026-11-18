@@ -1,4 +1,4 @@
-// style_check.js — mechanical style gate for the C++ source, mapped to JSF AV rules.
+// style_check.js - mechanical style gate for the C++ source, mapped to JSF AV rules.
 // Each check below corresponds to a rule the conformance matrix previously asserted by
 // inspection. What this script checks is now measured; what it cannot measure (bracing
 // style, one statement per line) remains an inspection claim and the matrix says so.

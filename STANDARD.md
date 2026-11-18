@@ -6,7 +6,7 @@ The logic layer of [robertbrucecoe.github.io](https://robertbrucecoe.github.io) 
 C++ to the discipline of the **Joint Strike Fighter Air Vehicle C++ Coding Standards**,
 Lockheed Martin Corporation, Doc. No. 2RDU00001 Rev C, December 2005 (the "JSF AV" standard,
 the coding standard of the F-35 air vehicle software). The source is compiled to a
-freestanding `wasm32` module of roughly 3.5 KB with no operating system, no C or C++
+freestanding `wasm32` module of roughly 4 KB with no operating system, no C or C++
 run-time library, and no standard library.
 
 The precise claim, stated plainly so it survives a strict audit: this is a **conformance
@@ -36,21 +36,46 @@ itself. The discipline and the deployment target are the same idea expressed twi
 |---|---|---|
 | Presentation | `index.html` | Complete and readable on its own. Scripting enhances it and never gates it. |
 | Logic | `src/Resume_core.cpp` → `resume_core.wasm` | Canonical record, CRC-32 integrity word, duration arithmetic, fixed-point easing, navigation state. Deterministic, integer-only, bounded. |
-| Verification | `build/build.ps1`, `build/verify.js`, `build/module_check.js`, this document | Compile gate, static analysis, a host-side harness for the module's built-in test, and a gate that reads the binary's interface. |
+| Verification | `build/build.ps1`, `build/build.sh`, `build/verify.js`, `build/module_check.js`, `build/record_check.js`, `build/bit_fault_check.js`, `build/page_fault_check.js`, this document | Compile gate, static analysis, a host-side harness for the module's built-in test, a gate that reads the binary's interface, a gate that holds the record, the role table, and the page's dates in agreement, and fault injection into both the module and the page. |
 | Print | `resume.pdf`, rendered by CI from `index.html` | The printed resume behind Download PDF. Rendered with a pinned browser after every gate passes, read back by a print gate, and published only if it passes. |
 
 On every page load the module runs a power-on built-in test in the manner of an avionics
-line-replaceable unit:
+line-replaceable unit. Each subsystem is tested against vectors that are independent of the
+data it serves, and reports its own bit of the result:
 
-1. The CRC-32 engine is verified against the universal known-answer vector
-   (`"123456789"` → `0xCBF43926`).
-2. The easing subsystem is verified at exact start, midpoint, and end values.
-3. The duration subsystem is verified against a known service interval
-   (January 2005 to August 2015 is 128 months, inclusive).
-4. Defensive bounds handling is verified on both sides of every legal range.
+1. **CRC-32 (1).** The engine is verified against the universal known-answer vector
+   (`"123456789"` → `0xCBF43926`), and the octet transport that carries a CRC across the
+   module boundary is verified on that check value, octet by octet.
+2. **Easing (2).** Eight vectors: start, end, midpoint, off-centre ascending and
+   descending, a reversed span, elapsed time past the duration, and the largest endpoint.
+3. **Duration (4).** Three hand-worked intervals held as literals apart from the role
+   table (one month, a year boundary, and the 128 months from January 2005 to August 2015),
+   so a corrupted table entry cannot also corrupt its expected answer. Every open-ended
+   role is checked against the load date, so the path that computes a current role is
+   tested, not assumed.
+4. **Bounds (8).** Out-of-range indices on both sides of the role table and of the CRC
+   octet index, the two indexed interfaces.
+5. **Navigation (64).** The section table is filled with known offsets and the active
+   section is checked one pixel short of a boundary, on it, at the largest and smallest
+   scroll positions, and at capacity, where a further push must be refused. The table is
+   cleared again before the page uses it.
+6. **Record (32).** The CRC-32 of the canonical record is compared against the value
+   recorded in the source (`record_crc_expected`). A corrupted or altered record fails.
+7. **Clock (128).** A load date outside 2026 to 2099, or a month outside 1 to 12, is
+   clamped so the arithmetic stays defined, and reported as a fault rather than silently
+   accepted.
 
-Only after all four pass does the status strip report `BIT NOMINAL`. The integrity word
-displayed in the masthead is the live CRC-32 of the canonical record embedded in the module.
+Only when every bit is clear does the status strip report `BIT NOMINAL`. On any fault the
+page states `BIT FAULT n`, withholds the integrity word, and shows no computed value: no
+duration badge, no computed counter, no live section indicator. It falls back to its static
+content, exactly as if the module had not loaded. The integrity word in the masthead is the
+CRC-32 of the canonical record, recomputed on every load and checked as in item 6.
+
+What the record does not cover is stated rather than implied. The dates exist in three
+places: the canonical record, the role table that the duration arithmetic uses, and the
+page text. No run-time check can make the page text agree with the module, so
+`build/record_check.js` reads all three on every build and fails unless every role's dates
+and the role count agree, and unless the recorded CRC-32 equals the record's actual CRC-32.
 
 ## Build environment
 
@@ -64,11 +89,15 @@ displayed in the masthead is the live CRC-32 of the canonical record embedded in
 | Complexity gate | `build/complexity_check.js`: McCabe cyclomatic complexity (if, for, while, do, case, `?:`, `&&`, `||`, plus one) for every function, from the compiler's own parse tree; fails above 20 (AV Rule 3). Rev C defines its counting method in Appendix A; where that differs, this gate's definition is the one stated here |
 | Style gate | `build/style_check.js`: measures AV Rules 9 (ASCII), 14 (uppercase suffixes), 41 (line length), 43 (no tabs), 126 (// comments) on every build |
 | Contrast gate | `build/contrast_check.js`: every text/background pair on the page measured against WCAG 2.1 AA (4.5:1) |
+| Record agreement gate | `build/record_check.js`: the canonical record, the role table, and each role's date line on the page must give the same start, end, and count, the same military flag in record and table, and the recorded CRC-32 in the source and in `verify.js` must equal the CRC-32 it computes from the record |
+| Fault-injection gate | `build/bit_fault_check.js`: builds the module from the unmodified source, which must report nominal, and then 13 times with one injected fault each (corrupted constants, wrong comparisons, a lost clamp, an altered record or recorded CRC). Every build must report exactly its expected fault code, so each subsystem is shown to detect a fault in itself and only in itself |
 | Linking | `-Wl,--no-entry -Wl,--max-memory=131072`: linear memory fixed at 2 pages (128 KiB) with no room to grow. wasm-ld exports the memory by default and has no switch to stop it, so `build/strip_memory_export.js` removes that one export entry after every link and fails the build unless it removed exactly one |
 | Module interface gate | `build/module_check.js`: reads the binary and requires no imports, no start function, exactly the declared function exports, no memory, table, or global export, a memory maximum equal to its initial size, and no `memory.grow` instruction. Run against both the rebuild and the committed binary |
 | Memory-safety gate | second module built with `-fsanitize=undefined,bounds -fsanitize-trap=all`; traps on any UB or out-of-bounds access |
-| Verification harness | `build/verify.js` under node; all checks required to pass, run against both the shipped and the instrumented module |
-| Continuous verification | `.github/workflows/verify.yml`: every pull request and every deploy rebuilds from source with a pinned wasi-sdk whose download is checked against a recorded SHA-256 before it is unpacked, runs all gates, functionally verifies the committed binary, audits the page for third-party references, and renders and gates the printed resume |
+| Verification harness | `build/verify.js` under node; all checks required to pass, run against both the shipped and the instrumented module. Covers the not-initialized state, the clock fault at five out-of-range dates, `rb_bit_status`, out-of-range indices, and `INT32` extremes on the clock, easing, and scroll inputs |
+| Reproducibility | the committed `resume_core.wasm` must be byte-identical to the rebuild from source; `build/build.sh` fails otherwise |
+| Page fault gate | `build/page_fault_check.js`, in the print job: loads the page in the pinned browser with the committed module and requires `BIT NOMINAL`, the integrity word, and every computed value; then loads it with a copy of the module whose record has one byte altered and requires `BIT FAULT 32`, the integrity word withheld, and no computed value on the page |
+| Continuous verification | `.github/workflows/verify.yml`: every pull request and every deploy rebuilds from source with a pinned wasi-sdk whose download is checked against a recorded SHA-256 before it is unpacked, runs all gates, requires the committed binary to be byte-identical to the rebuild, audits the page for third-party references, renders and gates the printed resume, and checks that a built-in test fault withholds every computed value on the page |
 | Print renderer | Chrome for Testing headless shell, pinned by version in `verify.yml` and checked against a recorded SHA-256 before it is unpacked. `build/print_pdf.sh` serves the page from localhost so the module loads, and prints it with the page's own print stylesheet, which is written in paper units only |
 | Print gate | `build/pdf_check.js`: reads `resume.pdf` with poppler and requires US Letter pages, no more than 3 of them, every word inside the declared margins, text spanning the printable width, text at its declared size rather than shrunk to fit, every heading, job title, and bullet in `index.html`, one computed duration per role (proof the module ran during the render), no colophon (it describes the live page, not a printed copy), and the page's own fonts embedded |
 | Deployment | `.github/workflows/deploy.yml`: on every push to `main` and on the 1st of each month, runs `verify.yml` in full, then publishes the page, the module, the fonts, and the gated PDF to GitHub Pages. Nothing is published if any gate fails. The monthly run keeps the durations computed into the PDF current |
@@ -85,7 +114,7 @@ throughout the source and are not repeated per rule here.
 
 | AV Rule | Requirement | Where honored |
 |---|---|---|
-| 1, 3 | Functions under 200 LSLOC, cyclomatic complexity 20 or less | Rule 1 gated by clang-tidy at 200 physical lines per function, which is stricter than logical lines. Rule 3 gated by `complexity_check.js` (McCabe: decision points plus one, from the compiler's parse tree). Highest today is `run_built_in_test` at 8 |
+| 1, 3 | Functions under 200 LSLOC, cyclomatic complexity 20 or less | Rule 1 gated by clang-tidy at 200 physical lines per function, which is stricter than logical lines. Rule 3 gated by `complexity_check.js` (McCabe: decision points plus one, from the compiler's parse tree). Highest today is `bit_navigation` at 8 |
 | 8 | ISO/IEC 14882:2002 | `-std=c++03`; see note above |
 | 9 | Basic source character set only | All source files are 7-bit ASCII; gated by `style_check.js` |
 | 14 | Uppercase literal suffixes | All unsigned literals use `U`; gated by `style_check.js` |
@@ -119,14 +148,15 @@ throughout the source and are not repeated per rule here.
 | 157, 158 | No side effects on right of `&&`/`||`; parenthesized operands | Throughout |
 | 162, 163 | No signed/unsigned mixing; no unsigned arithmetic | Signed `int32` throughout, except deviation D-1 below |
 | 164, 164.1 | Shift bounds; no right-shift of possibly negative values | Shifts occur on `uint32` only; the signed fixed-point path uses division instead of shifts |
+| 167 | Integer division documented | Every division has a non-negative dividend and a positive divisor, so no implementation-defined rounding of a negative quotient can occur; the easing subsystem divides the magnitude of a descending span and applies the sign after. Stated in the source header under INTEGER DIVISION |
 | 168 | No comma operator | None |
 | 175 | Pointer comparison against plain 0 | Not applicable; no pointer comparisons exist |
-| 180 | No information-losing implicit conversions | `-Wconversion -Wsign-conversion` are fatal; narrowing sites carry value-range justification comments. The CRC crosses the boundary octet-by-octet (`rb_data_crc_octet`), each value in [0, 255], so no out-of-range unsigned-to-signed conversion ever occurs |
+| 180 | No information-losing implicit conversions | `-Wconversion -Wsign-conversion` are fatal; narrowing sites carry value-range justification comments. The CRC crosses the boundary octet-by-octet (`rb_data_crc_octet`, through the `crc_octet` helper), each value in [0, 255], so no out-of-range unsigned-to-signed conversion ever occurs; the built-in test checks that transport on the CRC-32 check value |
 | 182 | No casting to or from pointer types | No pointer is converted to or from an integer anywhere in the module. The earlier offset-table design exposed a raw address; it was removed in favor of `rb_section_push`, which passes offsets by value |
 | 185 | C++ casts only | `static_cast` only; no `reinterpret_cast` remains; `-Wold-style-cast` is fatal |
 | 186–196 | Flow control (no goto, no continue, no break outside switch, else on every else-if chain) | Throughout; every `if`/`else if` chain ends in an `else`, including commented empty blocks |
 | 198–201 | For-loop discipline (single loop parameter, no body modification) | All loops are simple bounded counters |
-| 203 | No overflow | Every arithmetic path carries a worst-case bound analysis in comments; verified against `INT32` extremes in `build/verify.js` |
+| 203 | No overflow | Every arithmetic path carries a worst-case bound analysis in comments; every argument that enters arithmetic is clamped first, including the scroll position, which `rb_active_section` clamps to [0, 1 000 000 000] before adding its bias. Verified against `INT32` extremes on the clock, easing, and scroll inputs in `build/verify.js`, and the scroll clamp is shown necessary by `build/bit_fault_check.js` |
 | 204.1 | Expression value independent of evaluation order | No expression contains more than one side effect |
 | 206 | No heap allocation after initialization | No heap allocation exists at all, before or after; the module imports nothing and contains no allocator. Its memory is fixed at 2 pages with no `memory.grow` instruction; gated by `module_check.js` |
 | 207 | Unencapsulated global data avoided | All module state is file-scope `static`, and the module exports no memory, table, or global, so the state is reachable only through the exported functions; gated by `module_check.js` |
@@ -143,7 +173,7 @@ it. The project has one, recorded in the header of `Resume_core.cpp`.
 
 | ID | Rule | Deviation | Justification |
 |---|---|---|---|
-| D-1 | AV Rule 163 (no unsigned arithmetic) | `uint32` used in the CRC-32 subsystem | CRC-32 is polynomial division over GF(2), defined on unsigned 32-bit vectors. The operations are exclusively bitwise (XOR, AND, logical shift); no unsigned addition, subtraction, multiplication, or division occurs anywhere in the module. Scope: `crc32_table_entry`, `crc32_of_bytes`, `rb_data_crc_octet`, and the CRC state objects. |
+| D-1 | AV Rule 163 (no unsigned arithmetic) | `uint32` used in the CRC-32 subsystem | CRC-32 is polynomial division over GF(2), defined on unsigned 32-bit vectors. The operations are exclusively bitwise (XOR, AND, logical shift); no unsigned addition, subtraction, multiplication, or division occurs anywhere in the module. Scope: `crc32_table_entry`, `crc32_of_bytes`, `crc_octet`, the `crc32_*` constants and `record_crc_expected`, and the CRC state objects. |
 
 ## Memory safety
 
@@ -199,11 +229,13 @@ worth stating plainly.
 
 ## Accepted static-analysis findings
 
-clang-tidy reports three instances of `bugprone-easily-swappable-parameters` (adjacent
-parameters of the same type, in `clamp_int32` and `months_inclusive`). The findings are
-acknowledged and accepted; the mitigation is the documented parameter contracts in
-`Resume_core.h` and the known-answer tests that would catch a transposition. These three
-are the only findings the build accepts. `build/analysis_check.js` matches them by check and
+clang-tidy reports four instances of `bugprone-easily-swappable-parameters` (adjacent
+parameters of the same or convertible types, in `clamp_int32`, `months_inclusive`, and
+`crc_octet`). The findings are acknowledged and accepted; the mitigation is the documented
+parameter contracts in `Resume_core.h` and the source, and the built-in test vectors that
+would catch a transposition (for `crc_octet`, the octet-transport check of the CRC-32 check
+value, which `build/bit_fault_check.js` shows failing on a corrupted shift). These four are
+the only findings the build accepts. `build/analysis_check.js` matches them by check and
 function name and fails the build on any other finding, so this list is measured, not
 asserted.
 
@@ -278,6 +310,29 @@ bullet and on text outside the margins. The colophon is left out of the print: i
 a self test that runs on every load and a word in the masthead, and a printed copy has
 neither.
 
+**Round 6 (built-in test).** A line-by-line review of the built-in test against this
+document found that the test was weaker than it was described, and that its result changed
+nothing a reader saw. A fault replaced the status word, but the page still filled every
+computed badge and counter and displayed the integrity word. The integrity word itself was
+computed on every load and compared with nothing, so a corrupted record still read nominal;
+it covered the record string, but not the role table the durations come from, nor the page
+text. An impossible clock (1970, or month 13) was silently clamped and reported nominal.
+The open-ended role path, service months, navigation, and the octet transport were never
+tested; the duration vector was the record's own entry, so it tested the record against
+itself; the bounds test covered one index of two. No fault had ever been injected, so the
+fault path had never been seen to work, and `rb_bit_status` had no caller. The review also
+found an overflow in `rb_active_section` at the top of the `int32` range (AV Rule 203),
+undocumented division of a negative value in the easing subsystem (AV Rule 167), a
+reproducibility comparison in `build.sh` that could not fail, a service counter written as a
+page constant beside an unused module function, and the 60 000 ms cap missing from the
+`rb_ease` header. All are corrected. The built-in test now has the seven subsystems listed
+above, with vectors held apart from the data they check; a fault inhibits every computed output; the
+record is checked at run time against its recorded CRC-32 and at build time against the
+role table and the page; and three new gates prove the failure paths: fault injection into
+the source, a corrupted module loaded in the browser, and a stale committed binary. Each was
+shown to fail on a weakened copy (a removed boundary vector goes undetected and fails the
+fault-injection gate) before it was accepted.
+
 ## Reproducing the verification
 
 ```powershell
@@ -285,9 +340,9 @@ $env:WASI_SDK = "<path to wasi-sdk>"
 .\build\build.ps1
 ```
 
-The script compiles the shipped module with the full fatal-diagnostics flag set, runs static
-analysis and the complexity gate, builds and runs the instrumented memory-safety module,
-runs the module interface gate, then runs the verification harness against the shipped
-module. On Linux or Mac, run `WASI_SDK=<path> bash build/build.sh` to verify, or add
+The script compiles the shipped module with the full fatal-diagnostics flag set, runs the
+style, contrast, and record agreement gates, static analysis and the complexity gate, and
+the fault-injection gate, builds and runs the instrumented memory-safety module, runs the
+module interface gate, then runs the verification harness against the shipped module. On Linux or Mac, run `WASI_SDK=<path> bash build/build.sh` to verify, or add
 `--update` to replace the committed module with a rebuild that has passed every gate. The page itself re-runs the module's built-in test on
 every load; the result is in the top-right corner of the masthead.

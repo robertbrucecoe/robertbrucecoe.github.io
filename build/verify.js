@@ -1,14 +1,13 @@
-// verify.js — Host-side verification harness for the RBC-1 resume logic module.
+// verify.js - Host-side verification harness for the RBC-1 resume logic module.
 // Instantiates the wasm module, runs the built-in test, and exercises every export,
 // including defensive bounds behavior. Exits non-zero on any failure so the build
 // script can gate on it.
 
 const fs = require("fs");
 
-// EXPECTED_CRC is the CRC-32 of the canonical record inside src/Resume_core.cpp.
-// If you edit that record (new role, new dates), this value must change with it:
-// run the build, read the actual CRC from the failure message, update this line,
-// and run the build again. See MAINTAIN.md for the full procedure.
+// EXPECTED_CRC is the CRC-32 of the canonical record inside src/Resume_core.cpp, and must
+// equal record_crc_expected there. If you edit that record (new role, new dates), both
+// change with it: build/record_check.js prints the new value. See MAINTAIN.md.
 const EXPECTED_CRC = "0x5A75BE76";
 
 const wasmPath = process.argv[2] || "resume_core.wasm";
@@ -35,9 +34,26 @@ const crcOctetCount = 4;
 WebAssembly.instantiate(fs.readFileSync(wasmPath)).then(({ instance }) => {
   const e = instance.exports;
 
+  // Before initialization the module must report that it has not run its test.
+  check("BIT status before rb_init (16 = not initialized)", e.rb_bit_status(), 16);
+
+  // A host clock outside the record's era is clamped and reported, never trusted silently.
+  check("clock fault: year 1970 (128 = clock)", e.rb_init(1970, 1), 128);
+  check("clock fault: year 2100", e.rb_init(2100, 1), 128);
+  check("clock fault: month 13", e.rb_init(2026, 13), 128);
+  check("clock fault: month 0", e.rb_init(2026, 0), 128);
+  check("clock fault: INT32 extremes", e.rb_init(-2147483648, 2147483647), 128);
+  check("rb_bit_status reports the clock fault", e.rb_bit_status(), 128);
+
+  // rb_init clears the section table, so a host always starts from empty.
+  e.rb_section_push(0);
+  e.rb_section_push(100);
+
   // Initialize with a fixed date so every check below is deterministic.
   const bit = e.rb_init(2026, 6);
   check("BIT status (0 = nominal)", bit, 0);
+  check("rb_bit_status matches rb_init", e.rb_bit_status(), bit);
+  check("rb_init leaves the section table empty", e.rb_active_section(5000), 0);
   check("CRC-32 integrity word", crcHex(e), EXPECTED_CRC);
   check("CRC octet out-of-range (low) is 0", e.rb_data_crc_octet(-1), 0);
   check("CRC octet out-of-range (high) is 0", e.rb_data_crc_octet(99), 0);
@@ -54,14 +70,19 @@ WebAssembly.instantiate(fs.readFileSync(wasmPath)).then(({ instance }) => {
   check("ease at t=0", e.rb_ease(0, 1000, 0, 100), 0);
   check("ease at t=duration", e.rb_ease(1000, 1000, 0, 100), 100);
   check("ease at midpoint", e.rb_ease(500, 1000, 0, 1000), 500);
+  check("ease descending, off centre", e.rb_ease(250, 1000, 0, -1000), -156);
+  check("ease descending, midpoint", e.rb_ease(500, 1000, 1000, 0), 500);
   check("ease with INT32 extremes (clamped, no UB)", e.rb_ease(2147483647, 2147483647, -2147483648, 2147483647), 1000000);
+  check("ease with INT32 extremes, descending", e.rb_ease(2147483647, -2147483648, 2147483647, -2147483648), -1000000);
 
   // Navigation state machine, fed by value through rb_section_push (no shared memory).
-  e.rb_section_reset();
+  check("section reset returns 0", e.rb_section_reset(), 0);
   [0, 800, 1600, 2400, 3200, 4000].forEach((offset) => { e.rb_section_push(offset); });
   check("active section at scroll 0", e.rb_active_section(0), 0);
   check("active section at scroll 900", e.rb_active_section(900), 1);
   check("active section at scroll 5000", e.rb_active_section(5000), 5);
+  check("active section at INT32 max (clamped, no overflow)", e.rb_active_section(2147483647), 5);
+  check("active section at INT32 min (clamped)", e.rb_active_section(-2147483648), 0);
 
   // Capacity guard: pushing past the fixed table size must be rejected, never overrun.
   e.rb_section_reset();

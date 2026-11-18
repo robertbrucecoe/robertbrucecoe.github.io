@@ -28,13 +28,19 @@ namespace Rbc                                                                  /
     // rb_init
     // Purpose:      Power-on initialization and built-in test (BIT) of the module,
     //               mirroring the power-on self-test discipline of avionics line-replaceable
-    //               units. Computes the CRC-32 of the canonical resume record and verifies
-    //               every computational subsystem against known-answer tests.
+    //               units. Computes the CRC-32 of the canonical resume record, compares it
+    //               with the value recorded at the record's last revision, and verifies the
+    //               CRC-32 engine and octet transport, easing, duration arithmetic, bounds
+    //               handling, and navigation subsystems against hand-worked known answers.
+    //               Clears the section threshold table.
     // Parameters:   current_year  - calendar year at page load (e.g. 2026); used to resolve
     //                               open-ended employment intervals.       [AV Rule 116]
     //               current_month - calendar month at page load, 1 through 12.
-    // Returns:      0 when all built-in tests pass ("system nominal"); otherwise a bitmask
-    //               of bit_failure_codes identifying each failed subsystem.
+    // Returns:      0 when every test passes and the date is in range ("system nominal");
+    //               otherwise a bitmask of Bit_condition codes identifying each failure.
+    //               A date outside [2026, 2099] or a month outside [1, 12] is clamped and
+    //               reported as a clock fault, because durations against it would be wrong.
+    //               The presentation layer displays no computed value after any fault.
     // Assumptions:  Inputs outside their documented ranges are clamped, not trusted.
     //                                                                      [AV Rule 15, 134]
     int32 rb_init(int32 current_year, int32 current_month);
@@ -80,7 +86,8 @@ namespace Rbc                                                                  /
     //               exists anywhere in this module, so identical inputs yield identical
     //               outputs on every host.                                  [AV Rule 202]
     // Parameters:   elapsed  - milliseconds since the animation began; clamped to [0, duration].
-    //               duration - animation length in milliseconds; values below 1 are treated as 1.
+    //               duration - animation length in milliseconds; values below 1 are treated as 1,
+    //                          and values above 60 000 as 60 000.
     //               start_value / end_value - interpolation endpoints; the caller limits their
     //               magnitude to one million, which the module also enforces by clamping.
     // Returns:      The interpolated value; exactly start_value at elapsed 0 and exactly
@@ -113,7 +120,8 @@ namespace Rbc                                                                  /
     // Purpose:      Resolve which page section is active for a given scroll position by
     //               evaluating the pushed threshold table as a monotonic sequence. This is
     //               the navigation state machine for the presentation layer.
-    // Parameters:   scroll_position - current vertical scroll offset in CSS pixels.
+    // Parameters:   scroll_position - current vertical scroll offset in CSS pixels; clamped
+    //               to [0, 1 000 000 000] so that no int32 input can overflow. [AV Rule 203]
     // Returns:      Zero-based index of the active section; 0 when no entry qualifies.
     int32 rb_active_section(int32 scroll_position);
   }

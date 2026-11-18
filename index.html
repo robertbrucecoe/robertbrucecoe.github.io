@@ -823,7 +823,7 @@
     </div>
     <div class="stats reveal">
       <div class="stat">
-        <div class="num"><span data-count data-target="11">11</span><sub>YRS</sub></div>
+        <div class="num"><span id="stat-svc" data-count data-target="11">11</span><sub>YRS</sub></div>
         <div class="lbl">Uniformed military service</div>
       </div>
       <div class="stat">
@@ -1048,9 +1048,11 @@
   <div class="colophon-inner">
     <div class="sec-head"><span class="no">06</span><h2>Colophon</h2></div>
     <p>
-      This page runs a self test each time it loads. The word in the masthead is a live
-      integrity check over the record you are reading, recomputed on every visit. The
-      counters and duration badges above were calculated during that same load.
+      This page runs a self test each time it loads. The word in the masthead is the
+      checksum of the record of roles and dates behind this page, recomputed on every visit
+      and checked against its recorded value. The service and Eagle Dynamics counters and
+      the duration badges were calculated during that same load. If any part of the test
+      fails, nothing calculated is shown.
     </p>
     <p>
       A standard governs how this page was built. It is cited in the
@@ -1135,16 +1137,25 @@
       var e = mod.instance.exports;
       var now = new Date();
 
-      /* Power-on built-in test */
+      /* Power-on built-in test. A fault inhibits every computed output: the page keeps
+         its static content, as if the module had not loaded, and states the fault code. */
       var bit = e.rb_init(now.getFullYear(), now.getMonth() + 1);
+      if (bit !== 0) {
+        stripBit.textContent = 'BIT FAULT ' + bit;
+        stripCrc.textContent = '--------';
+        document.getElementById('spec-bit').textContent = 'FAULT CODE ' + bit;
+        document.getElementById('spec-crc').textContent = 'WITHHELD';
+        if (window.console) { console.warn('RBC-1 built-in test fault code', bit); }
+        return;
+      }
       var crcHex = '0x';
       var oi;
       for (oi = 3; oi >= 0; oi--) {
         crcHex += ('0' + (e.rb_data_crc_octet(oi) & 0xFF).toString(16).toUpperCase()).slice(-2);
       }
-      stripBit.textContent = (bit === 0) ? 'BIT NOMINAL' : 'BIT FAULT ' + bit;
+      stripBit.textContent = 'BIT NOMINAL';
       stripCrc.textContent = crcHex;
-      document.getElementById('spec-bit').textContent = (bit === 0) ? 'NOMINAL' : 'FAULT CODE ' + bit;
+      document.getElementById('spec-bit').textContent = 'NOMINAL';
       document.getElementById('spec-crc').textContent = crcHex;
 
       /* Duration badges, computed in C++ */
@@ -1155,6 +1166,10 @@
           el.classList.add('filled');
         }
       });
+
+      /* Uniformed service, in whole years, computed in C++ */
+      document.getElementById('stat-svc').setAttribute('data-target',
+        String(Math.floor(e.rb_service_months() / 12)));
 
       /* Live Eagle Dynamics months stat */
       var edMonths = e.rb_role_months(0);
