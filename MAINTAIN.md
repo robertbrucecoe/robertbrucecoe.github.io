@@ -78,6 +78,21 @@ Procedure:
    CI rebuilds from source and fails unless the binary you committed is byte-identical to
    that rebuild.
 
+## Changing the module's code
+
+Any change to `src/Resume_core.cpp` beyond the record must keep two gates passing:
+
+- The structural coverage gate (`build/coverage_check.js`, step 10, needs `g++` and `gcov`)
+  fails if any line or either outcome of any decision is reached by no check. New code
+  needs a vector in `build/verify.js` or in the built-in test. A new failure report needs
+  a fault in `build/bit_faults.js` that triggers it. The gate names the line it found
+  unreached.
+- The fault-injection gate (`build/bit_fault_check.js`) applies each fault in
+  `build/bit_faults.js` by exact text. If you change a line a fault targets, update that
+  fault's `find` and `replace` to match, keeping the same line count.
+
+Then update the traceability table in `STANDARD.md` if a requirement or its checks changed.
+
 ## What the masthead states mean
 
 - `BIT NOMINAL` - the module loaded and every built-in test passed.

@@ -152,6 +152,7 @@ namespace Rbc                                                                  /
   const int32 ease_vector_count       = 8;      // easing known answers
   const int32 nav_offset_count        = 3;      // section tops pushed by the navigation test
   const int32 nav_vector_count        = 5;      // navigation known answers
+  const int32 bounds_probe_count      = 2;      // out-of-range indices per indexed range
 
   // One closed-interval duration known answer.                                [AV Rule 65]
   struct Duration_vector
@@ -213,6 +214,11 @@ namespace Rbc                                                                  /
   static const int32 crc_check_octets[crc_octet_count] = { 0x26, 0x39, 0xF4, 0xCB };
                                            // octets of crc32_check_value, least significant
                                            // first, for the octet transport known answer
+
+  // The first index below and the first index above each legal range. Each is probed by
+  // its own decision, so a fault on either side is reported by a statement of its own.
+  static const int32 role_index_probes[bounds_probe_count] = { -1, role_table_size };
+  static const int32 octet_index_probes[bounds_probe_count] = { -1, crc_octet_count };
 
   // ---------------------------------------------------------------------------------------------
   // Module state
@@ -586,17 +592,26 @@ namespace Rbc                                                                  /
   //               index and the CRC octet index.
   static int32 bit_bounds()
   {
-    int32 status = bit_nominal;            // result for this subsystem       [AV Rule 113]
-    if ((role_months_internal(-1) != 0)
-        || (role_months_internal(role_table_size) != 0)
-        || (crc_octet(crc32_check_value, -1) != 0)
-        || (crc_octet(crc32_check_value, crc_octet_count) != 0))      // [AV Rule 158]
+    int32 status      = bit_nominal;       // result for this subsystem       [AV Rule 113]
+    int32 probe_index = 0;                 // bounded loop counter
+    for (probe_index = 0; probe_index < bounds_probe_count; ++probe_index)   // [AV Rule 198]
     {
-      status = bit_fail_bounds;            // an out-of-range index was not rejected
-    }
-    else
-    {
-      // Bounds handling verified on both sides of both ranges.              [AV Rule 192]
+      if (role_months_internal(role_index_probes[probe_index]) != 0)
+      {
+        status = bit_fail_bounds;          // an out-of-range role index was not rejected
+      }
+      else
+      {
+        // This side of the role index range is rejected.                     [AV Rule 192]
+      }
+      if (crc_octet(crc32_check_value, octet_index_probes[probe_index]) != 0)
+      {
+        status = bit_fail_bounds;          // an out-of-range octet index was not rejected
+      }
+      else
+      {
+        // This side of the octet index range is rejected.                    [AV Rule 192]
+      }
     }
     return status;                         // sole exit point                 [AV Rule 113]
   }

@@ -90,11 +90,12 @@ and the role count agree, and unless the recorded CRC-32 equals the record's act
 | Style gate | `build/style_check.js`: measures AV Rules 9 (ASCII), 14 (uppercase suffixes), 41 (line length), 43 (no tabs), 126 (// comments) on every build |
 | Contrast gate | `build/contrast_check.js`: every text/background pair on the page measured against WCAG 2.1 AA (4.5:1) |
 | Record agreement gate | `build/record_check.js`: the canonical record, the role table, and each role's date line on the page must give the same start, end, and count, the same military flag in record and table, and the recorded CRC-32 in the source and in `verify.js` must equal the CRC-32 it computes from the record |
-| Fault-injection gate | `build/bit_fault_check.js`: builds the module from the unmodified source, which must report nominal, and then 13 times with one injected fault each (corrupted constants, wrong comparisons, a lost clamp, an altered record or recorded CRC). Every build must report exactly its expected fault code, so each subsystem is shown to detect a fault in itself and only in itself |
+| Fault-injection gate | `build/bit_fault_check.js`: builds the module from the unmodified source, which must report nominal, and then 14 times with one injected fault each (corrupted constants, wrong comparisons, a lost clamp, an altered record or recorded CRC). Every build must report exactly its expected fault code, so each subsystem is shown to detect a fault in itself and only in itself |
 | Linking | `-Wl,--no-entry -Wl,--max-memory=131072`: linear memory fixed at 2 pages (128 KiB) with no room to grow. wasm-ld exports the memory by default and has no switch to stop it, so `build/strip_memory_export.js` removes that one export entry after every link and fails the build unless it removed exactly one |
 | Module interface gate | `build/module_check.js`: reads the binary and requires no imports, no start function, exactly the declared function exports, no memory, table, or global export, a memory maximum equal to its initial size, and no `memory.grow` instruction. Run against both the rebuild and the committed binary |
 | Memory-safety gate | second module built with `-fsanitize=undefined,bounds -fsanitize-trap=all`; traps on any UB or out-of-bounds access |
 | Verification harness | `build/verify.js` under node; all checks required to pass, run against both the shipped and the instrumented module. Covers the not-initialized state, the clock fault at five out-of-range dates, `rb_bit_status`, out-of-range indices, and `INT32` extremes on the clock, easing, and scroll inputs |
+| Structural coverage gate | `build/coverage_check.js`: records every call `verify.js` makes and every result the wasm module returns, replays that sequence against a native build of the same source instrumented by gcc, and fails unless the native results match the wasm results call for call, every exported function is called, every executable line runs, and both outcomes of every decision and of every `&&`/`\|\|` operand are taken. The statements that report a test failure cannot run in a sound module, so each is credited only if one of the injected faults of `build/bit_faults.js`, built instrumented, reaches it. Branch coverage, not MC/DC |
 | Reproducibility | the committed `resume_core.wasm` must be byte-identical to the rebuild from source; `build/build.sh` fails otherwise |
 | Page fault gate | `build/page_fault_check.js`, in the print job: loads the page in the pinned browser with the committed module and requires `BIT NOMINAL`, the integrity word, and every computed value; then loads it with a copy of the module whose record has one byte altered and requires `BIT FAULT 32`, the integrity word withheld, and no computed value on the page |
 | Continuous verification | `.github/workflows/verify.yml`: every pull request and every deploy rebuilds from source with a pinned wasi-sdk whose download is checked against a recorded SHA-256 before it is unpacked, runs all gates, requires the committed binary to be byte-identical to the rebuild, audits the page for third-party references, renders and gates the printed resume, and checks that a built-in test fault withholds every computed value on the page |
@@ -223,6 +224,17 @@ worth stating plainly.
 - **AV Rule 8 targets ISO/IEC 14882:2002.** The build uses `-std=c++03` (the 2003 technical
   corrigendum), the closest mode a current clang offers. No construct beyond 14882:2002 is
   used.
+- **Coverage is branch coverage, measured on a native build.** The wasm target has no
+  coverage run-time, so the gate measures the same source compiled natively by gcc and
+  requires it to return what the wasm module returned on every call. It does not measure
+  MC/DC, which DO-178C requires of its most critical software; gcc 13 cannot instrument it.
+  A helper shared by several callers (`clamp_int32`) is covered once, not once per caller.
+- **The checks are tested by their own failure, not by a suite.** Each gate was shown to
+  fail on a deliberately broken input before it was accepted, and the fault-injection and
+  coverage gates re-prove the built-in test on every build. The other gates have no
+  standing set of bad inputs run against them.
+- **`build/build.ps1` mirrors `build/build.sh` but CI does not run it.** CI and every
+  result in this document come from the Linux script.
 - **This matrix covers the verifiable shall and will rules** relevant to a module of this
   size. Rules concerning class hierarchies, templates, virtual dispatch, and multiple
   inheritance are not exercised because the module uses none of those features.
@@ -238,6 +250,44 @@ value, which `build/bit_fault_check.js` shows failing on a corrupted shift). The
 the only findings the build accepts. `build/analysis_check.js` matches them by check and
 function name and fails the build on any other finding, so this list is measured, not
 asserted.
+
+## Requirements traceability
+
+Each requirement the module and the page are held to is stated once below, with the code
+that implements it and every check that verifies it. A requirement with no verifying check
+would be a claim, and none is left that way. The structural coverage gate closes the loop
+in the other direction: it fails if any line or branch outcome of the module is exercised by
+no check, so no code exists that the requirements and their tests do not reach.
+
+Abbreviations: **BIT** is the power-on built-in test, by subsystem; **VJ** is a named check
+in `build/verify.js`; **FI** is a fault in `build/bit_faults.js`, run by the fault-injection
+and coverage gates.
+
+| ID | Requirement | Implemented in | Verified by |
+|---|---|---|---|
+| R-01 | `rb_init` shall run the built-in test and return 0 only when every subsystem passes and the date is in range; otherwise a bitmask naming each failure | `rb_init`, `run_built_in_test` | VJ "BIT status (0 = nominal)"; all 14 FI, each by its exact code |
+| R-02 | Before `rb_init`, `rb_bit_status` shall return 16 (not initialized) | `s_bit_status` initial value | VJ "BIT status before rb_init" |
+| R-03 | `rb_bit_status` shall return the result of the last `rb_init` | `rb_bit_status` | VJ "rb_bit_status matches rb_init", "rb_bit_status reports the clock fault" |
+| R-04 | A year outside [2026, 2099] or a month outside [1, 12] shall be clamped and reported as 128 | `rb_init` | VJ five "clock fault" checks, including `INT32` extremes |
+| R-05 | The CRC-32 engine shall reproduce the IEEE 802.3 check value, and report 1 otherwise | `crc32_table_entry`, `crc32_of_bytes`, `bit_crc` | BIT CRC (1); FI "polynomial corrupted" |
+| R-06 | A CRC shall leave the module only as octets in [0, 255]; an octet index outside [0, 3] shall return 0 | `crc_octet`, `rb_data_crc_octet` | BIT CRC octet transport, BIT bounds (8); VJ "CRC-32 integrity word", both "CRC octet out-of-range"; FI "wrong shift", "CRC octet index answers 1" |
+| R-07 | The record's CRC-32 shall be compared at every load with `record_crc_expected`, and a mismatch reported as 32 | `run_built_in_test` | BIT record (32); FI "one character of the record altered", "recorded CRC-32 altered"; page fault gate |
+| R-08 | The record, the role table, and the page's dates shall agree, and the recorded CRC-32 shall equal the record's | `canonical_record`, `role_table`, `index.html` | `record_check.js` |
+| R-09 | A role's duration shall count both its first and last months; an open role shall end at the load date | `months_inclusive`, `role_months_internal`, `bit_duration` | BIT duration (4); VJ "Eagle Dynamics months", "Army battery role months"; FI "inclusive month lost", "open role closed at the wrong month" |
+| R-10 | A role index outside the table shall return 0 | `role_months_internal` | BIT bounds (8); VJ both "out-of-range role index"; FI "role index answers 1" |
+| R-11 | `rb_service_months` shall return the sum of the military roles' durations | `rb_service_months` | VJ "total uniformed service months" (not in the BIT: a wrong sum shows as a wrong counter, never as a corrupted record) |
+| R-12 | `rb_ease` shall return its endpoints exactly, use integer fixed point only, clamp elapsed to [0, duration], duration to [1, 60 000] ms and endpoints to [-1 000 000, 1 000 000], and ease a descending span symmetrically | `ease_internal`, `rb_ease`, `bit_ease` | BIT easing (2), eight vectors; VJ seven "ease" checks, both `INT32`-extreme cases; FI "smoothstep coefficient corrupted", "descending excursion applied with the wrong sign" |
+| R-13 | The section table shall hold at most 16 entries, refuse any push past that, and be emptied by `rb_section_reset` and by `rb_init` | `section_push_internal`, `rb_section_reset`, `rb_init` | BIT navigation (64); VJ "section reset returns 0", "rb_init leaves the section table empty", both capacity checks; FI "capacity guard refuses pushes below capacity", "admits one too many" |
+| R-14 | `rb_active_section` shall return the last section whose top is at or above the scroll position plus 160 px, after clamping the scroll to [0, 1 000 000 000], and 0 when none qualifies | `active_section_internal` | BIT navigation (64); VJ five "active section" checks; FI "activation boundary off by one", "scroll clamp lost" |
+| R-15 | The module shall import nothing, export exactly its ten functions and no memory, table, or global, and have fixed memory with no growth | link flags, `strip_memory_export.js` | `module_check.js`, on the rebuild and the committed binary |
+| R-16 | No input in the harness shall cause undefined behavior or an out-of-bounds access | the whole module | memory-safety build plus `verify.js` |
+| R-17 | After any built-in test fault the page shall show the fault code and no computed value | `index.html` | page fault gate |
+| R-18 | The committed module shall be the build of the committed source | `build.sh` | reproducibility comparison |
+| R-19 | The printed resume shall be at most 3 US Letter pages, at its declared size, with every heading, title, and bullet and one computed duration per role | `index.html` print stylesheet, `print_pdf.sh` | `pdf_check.js` |
+| R-20 | Every line and branch outcome of the module shall be exercised by a check above | the whole module | `coverage_check.js` |
+
+R-14 reads "at or above" in page coordinates: a section is active once its top has scrolled
+to within 160 px below the top of the window.
 
 ## Revision history
 
@@ -333,6 +383,21 @@ the source, a corrupted module loaded in the browser, and a stale committed bina
 shown to fail on a weakened copy (a removed boundary vector goes undetected and fails the
 fault-injection gate) before it was accepted.
 
+**Round 7 (traceability and coverage).** Asked whether the project would satisfy a defense
+engineering lead, the honest answer named two gaps first: no record tying each requirement
+to the checks that verify it, and no measurement of how much of the code those checks
+actually exercise. Both are now closed. The requirements traceability table above states
+twenty requirements, each with its implementation and every check that verifies it. The
+new structural coverage gate replays the harness's own calls against an instrumented
+native build and requires every line and both outcomes of every decision to be exercised.
+It found what such a gate should: the bounds test was one compound decision, so a fault on
+one side of one range could hide behind the others; it is now four decisions. And no
+injected fault reached the navigation test's report that a push below capacity was refused;
+a fourteenth fault now does. The gate was shown to fail with that fault removed and with
+the harness's clock-fault checks removed. The limits of the measurement (branch coverage,
+not MC/DC; a native build, not the wasm binary) are stated under Limitations, along with the
+remaining gaps the same review named.
+
 ## Reproducing the verification
 
 ```powershell
@@ -343,6 +408,8 @@ $env:WASI_SDK = "<path to wasi-sdk>"
 The script compiles the shipped module with the full fatal-diagnostics flag set, runs the
 style, contrast, and record agreement gates, static analysis and the complexity gate, and
 the fault-injection gate, builds and runs the instrumented memory-safety module, runs the
-module interface gate, then runs the verification harness against the shipped module. On Linux or Mac, run `WASI_SDK=<path> bash build/build.sh` to verify, or add
-`--update` to replace the committed module with a rebuild that has passed every gate. The page itself re-runs the module's built-in test on
-every load; the result is in the top-right corner of the masthead.
+module interface gate, runs the verification harness against the shipped module, then
+runs the structural coverage gate if g++ and gcov are installed. On Linux or Mac, run
+`WASI_SDK=<path> bash build/build.sh` to verify, or add `--update` to replace the committed
+module with a rebuild that has passed every gate. The page itself re-runs the module's
+built-in test on every load; the result is in the top-right corner of the masthead.
