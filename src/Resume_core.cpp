@@ -2,7 +2,7 @@
 // File:        Resume_core.cpp
 // Contents:    Implementation of the RBC-1 resume logic module: canonical resume record,
 //              CRC-32 integrity word, employment-duration computation, fixed-point easing,
-//              navigation state resolution, and continuous built-in test (BIT).
+//              navigation state resolution, and power-on built-in test (BIT).
 // Standard:    Written to the discipline of the Joint Strike Fighter Air Vehicle C++ Coding
 //              Standards, Doc. No. 2RDU00001 Rev C, December 2005 ("JSF AV"). This is a
 //              conformance effort with one documented deviation (D-1, below), not a certified
