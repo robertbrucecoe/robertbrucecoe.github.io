@@ -58,11 +58,9 @@ Write-Host "[3/7] Contrast gate (WCAG 2.1 AA)..."
 node (Join-Path $PSScriptRoot "contrast_check.js")
 if ($LASTEXITCODE -ne 0) { throw "Contrast gate reported failures." }
 
-Write-Host "[4/7] Static analysis (clang-tidy)..."
-& $tidy $srcFile `
-  -checks="clang-analyzer-*,bugprone-*,cppcoreguidelines-avoid-goto,cppcoreguidelines-avoid-magic-numbers,readability-function-size,readability-function-cognitive-complexity,misc-no-recursion" `
-  -quiet `
-  -- --target=wasm32 -std=c++03 -nostdlib -ffreestanding -fno-exceptions -fno-rtti -I $incDir
+Write-Host "[4/7] Static analysis (clang-tidy, fatal outside the documented findings)..."
+node (Join-Path $PSScriptRoot "analysis_check.js") $tidy
+if ($LASTEXITCODE -ne 0) { throw "Static analysis reported findings outside the accepted list." }
 
 Write-Host "[5/7] Memory-safety build (UBSan + bounds, trap-on-violation) and verification..."
 # A separate instrumented module. -fsanitize-trap routes every detected undefined behavior
