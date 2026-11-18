@@ -714,7 +714,7 @@
     html, body { background: white; }
     body { line-height: 1.4; }
 
-    .page, .colophon-inner { max-width: none; margin: 0; padding: 0; }
+    .page { max-width: none; margin: 0; padding: 0; }
 
     /* Profile */
     .hero { padding: 0; overflow: visible; }
@@ -769,19 +769,11 @@
     .comp li { font-size: 9pt; line-height: 1.6; }
     .comp li + li::before { margin: 0 5pt 0 4pt; }
 
-    /* Colophon, printed dark on white */
-    .colophon { margin-top: 16pt; background: white; color: var(--slate); border-top: 1px solid var(--hairline); break-inside: avoid; }
-    .colophon .sec-head { margin: 10pt 0 7pt; }
-    .colophon .sec-head h2 { color: var(--ink); }
-    .colophon p { max-width: none; font-size: 9pt; line-height: 1.45; margin-bottom: 5pt; }
-    .colophon p strong { color: var(--ink); }
-    .colophon p a { color: var(--gold-text); }
-    .spec { margin: 7pt 0 0; grid-template-columns: repeat(4, 1fr); }
-    .spec div { background: white; padding: 4pt 7pt; }
-    .spec .k { font-size: 6.5pt; margin-bottom: 2pt; }
-    .spec .v { font-size: 9pt; color: var(--navy); }
-    .spec .k, .footer { color: var(--slate); }
-    .footer { padding: 8pt 0 0; font-size: 7pt; }
+    /* The colophon describes the live page: a self test on every load, a word in the masthead.
+       A printed copy has neither, so only the footer line prints. */
+    .colophon-inner { display: none; }
+    .colophon { margin-top: 14pt; background: white; border-top: 1px solid var(--hairline); }
+    .footer { border-top: none; padding: 6pt 0 0; font-size: 7pt; color: var(--slate); }
   }
 </style>
 </head>

@@ -70,7 +70,7 @@ displayed in the masthead is the live CRC-32 of the canonical record embedded in
 | Verification harness | `build/verify.js` under node; all checks required to pass, run against both the shipped and the instrumented module |
 | Continuous verification | `.github/workflows/verify.yml`: every pull request and every deploy rebuilds from source with a pinned wasi-sdk whose download is checked against a recorded SHA-256 before it is unpacked, runs all gates, functionally verifies the committed binary, audits the page for third-party references, and renders and gates the printed resume |
 | Print renderer | Chrome for Testing headless shell, pinned by version in `verify.yml` and checked against a recorded SHA-256 before it is unpacked. `build/print_pdf.sh` serves the page from localhost so the module loads, and prints it with the page's own print stylesheet, which is written in paper units only |
-| Print gate | `build/pdf_check.js`: reads `resume.pdf` with poppler and requires US Letter pages, no more than 3 of them, every word inside the declared margins, text spanning the printable width, text at its declared size rather than shrunk to fit, every heading, job title, and bullet in `index.html`, one computed duration per role, a NOMINAL self test, the expected integrity word, and the page's own fonts embedded |
+| Print gate | `build/pdf_check.js`: reads `resume.pdf` with poppler and requires US Letter pages, no more than 3 of them, every word inside the declared margins, text spanning the printable width, text at its declared size rather than shrunk to fit, every heading, job title, and bullet in `index.html`, one computed duration per role (proof the module ran during the render), no colophon (it describes the live page, not a printed copy), and the page's own fonts embedded |
 | Deployment | `.github/workflows/deploy.yml`: on every push to `main` and on the 1st of each month, runs `verify.yml` in full, then publishes the page, the module, the fonts, and the gated PDF to GitHub Pages. Nothing is published if any gate fails. The monthly run keeps the durations computed into the PDF current |
 
 **Note on AV Rule 8.** The rule requires ISO/IEC 14882:2002. The closest mode in a modern
@@ -274,7 +274,9 @@ and the print is the same from any device. Download PDF now serves a PDF that CI
 with a pinned browser and reads back with a print gate before publishing, and the site is
 deployed by a workflow that publishes nothing unless every gate passes. The print gate was
 calibrated on both prints and was shown to fail the shrunken one, and to fail on a missing
-bullet, a wrong integrity word, and text outside the margins.
+bullet and on text outside the margins. The colophon is left out of the print: it describes
+a self test that runs on every load and a word in the masthead, and a printed copy has
+neither.
 
 ## Reproducing the verification
 

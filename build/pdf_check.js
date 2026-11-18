@@ -15,9 +15,9 @@
 //     divided by the .entry li font size declared in the print block. Poppler reports a
 //     word's height as the font's ascent plus descent, so an unshrunk print measures above
 //     1 for this face. The calibration is stated where minScale is defined below
-//   - Every heading, job title, and bullet in index.html appears in the PDF
-//   - The logic module ran during the render: one COMPUTED badge per role, the self test
-//     reads NOMINAL, and the integrity word equals EXPECTED_CRC in build/verify.js
+//   - Every heading, job title, and bullet in index.html appears in the PDF, and the
+//     colophon does not: it describes the live page, not a printed copy
+//   - The logic module ran during the render: one COMPUTED badge per role
 //   - The page's own fonts are embedded, so the render did not fall back to system fonts
 //
 // Usage: node pdf_check.js <resume.pdf>
@@ -31,7 +31,6 @@ const path = require("path");
 const root = path.join(__dirname, "..");
 const pdfPath = process.argv[2];
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-const verifySource = fs.readFileSync(path.join(__dirname, "verify.js"), "utf8");
 
 const letter = { width: 612, height: 792 };
 const pointsPerInch = 72;
@@ -117,7 +116,8 @@ function key(s) {
   return s.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
-const body = html.slice(html.indexOf("<body"));
+// The printed content: everything in the body before the colophon.
+const body = html.slice(html.indexOf("<body"), html.indexOf("<section class=\"colophon\""));
 const expected = [];
 const patterns = [
   /<h2[^>]*>([\s\S]*?)<\/h2>/g,
@@ -136,8 +136,6 @@ while (article) {
   article = patterns[2].exec(body);
 }
 const roleCount = (body.match(/class="dur" data-role="/g) || []).length;
-const crcMatch = /const EXPECTED_CRC = "(0x[0-9A-F]{8})"/.exec(verifySource);
-const expectedCrc = crcMatch ? crcMatch[1] : "";
 
 // ---- What the PDF contains -------------------------------------------------------------
 
@@ -213,9 +211,7 @@ missing.forEach((t) => { console.log(`        missing: ${t.slice(0, 90)}`); });
 const computed = (pdfKey.match(/(yrs?|mos?)computed/g) || []).length;
 check("one COMPUTED badge per role", roleCount > 0 && computed === roleCount,
   `${computed} badges, ${roleCount} roles`);
-check("self test reads NOMINAL", /\bNOMINAL\b/.test(rawText));
-check("integrity word matches EXPECTED_CRC", expectedCrc !== "" && rawText.indexOf(expectedCrc) >= 0,
-  expectedCrc || "EXPECTED_CRC not found in verify.js");
+check("colophon not printed", !/\bColophon\b/i.test(rawText) && !/\bSELF TEST\b/i.test(rawText));
 
 const fonts = run("pdffonts", [pdfPath]).split(/\r?\n/).slice(2).filter((l) => l.trim() !== "");
 ["Fraunces", "SourceSerif4", "IBMPlexMono"].forEach((family) => {
