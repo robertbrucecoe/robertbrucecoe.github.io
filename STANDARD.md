@@ -36,7 +36,7 @@ itself. The discipline and the deployment target are the same idea expressed twi
 |---|---|---|
 | Presentation | `index.html` | Complete and readable on its own. Scripting enhances it and never gates it. |
 | Logic | `src/Resume_core.cpp` → `resume_core.wasm` | Canonical record, CRC-32 integrity word, duration arithmetic, fixed-point easing, navigation state. Deterministic, integer-only, bounded. |
-| Verification | `build/build.ps1`, `build/verify.js`, this document | Compile gate, static analysis, and a host-side harness for the module's built-in test. |
+| Verification | `build/build.ps1`, `build/verify.js`, `build/module_check.js`, this document | Compile gate, static analysis, a host-side harness for the module's built-in test, and a gate that reads the binary's interface. |
 
 On every page load the module runs a power-on built-in test in the manner of an avionics
 line-replaceable unit:
@@ -62,6 +62,8 @@ displayed in the masthead is the live CRC-32 of the canonical record embedded in
 | Static analysis | clang-tidy: `clang-analyzer-*`, `bugprone-*`, magic-number, goto, recursion, and function-size checks |
 | Style gate | `build/style_check.js`: measures AV Rules 9 (ASCII), 14 (uppercase suffixes), 41 (line length), 43 (no tabs), 126 (// comments) on every build |
 | Contrast gate | `build/contrast_check.js`: every text/background pair on the page measured against WCAG 2.1 AA (4.5:1) |
+| Linking | `-Wl,--no-entry -Wl,--max-memory=131072`: linear memory fixed at 2 pages (128 KiB) with no room to grow. wasm-ld exports the memory by default and has no switch to stop it, so `build/strip_memory_export.js` removes that one export entry after every link and fails the build unless it removed exactly one |
+| Module interface gate | `build/module_check.js`: reads the binary and requires no imports, no start function, exactly the declared function exports, no memory, table, or global export, a memory maximum equal to its initial size, and no `memory.grow` instruction. Run against both the rebuild and the committed binary |
 | Memory-safety gate | second module built with `-fsanitize=undefined,bounds -fsanitize-trap=all`; traps on any UB or out-of-bounds access |
 | Verification harness | `build/verify.js` under node; all checks required to pass, run against both the shipped and the instrumented module |
 | Continuous verification | `.github/workflows/verify.yml`: every push rebuilds from source with a pinned wasi-sdk, runs all gates, functionally verifies the committed binary, and audits the page for third-party references |
@@ -121,11 +123,12 @@ throughout the source and are not repeated per rule here.
 | 198–201 | For-loop discipline (single loop parameter, no body modification) | All loops are simple bounded counters |
 | 203 | No overflow | Every arithmetic path carries a worst-case bound analysis in comments; verified against `INT32` extremes in `build/verify.js` |
 | 204.1 | Expression value independent of evaluation order | No expression contains more than one side effect |
-| 206 | No heap allocation after initialization | No heap allocation exists at all, before or after; the module imports nothing and contains no allocator |
+| 206 | No heap allocation after initialization | No heap allocation exists at all, before or after; the module imports nothing and contains no allocator. Its memory is fixed at 2 pages with no `memory.grow` instruction; gated by `module_check.js` |
+| 207 | Unencapsulated global data avoided | All module state is file-scope `static`, and the module exports no memory, table, or global, so the state is reachable only through the exported functions; gated by `module_check.js` |
 | 208 | No exceptions | `-fno-exceptions`; no throw, try, or catch |
 | 209 | Specific-length typedefs instead of basic types | `Std_types.h`; widths verified at compile time. No basic type (`int`, `short`, `long`, `float`, `double`) appears in implementation code |
 | 213 | No reliance on operator precedence below arithmetic | Fully parenthesized expressions throughout |
-| 215 | No pointer arithmetic | Array indexing through bounds-checked counters only; the host never receives a pointer into module memory |
+| 215 | No pointer arithmetic | Array indexing through bounds-checked counters only; the host never receives a pointer into module memory and has no handle on that memory; gated by `module_check.js` |
 | 218 | Warning levels per project policy | Policy: every diagnostic fatal; see build environment above |
 
 ## Deviation log (AV Rules 4–6)
@@ -146,10 +149,12 @@ Memory safety here is established three ways, not asserted.
    (AV Rule 153). All storage is fixed-size and statically allocated; every array index is
    produced by a bounded loop counter or a clamped value.
 2. **By sandbox.** A WebAssembly module cannot address memory outside its own linear
-   memory. The module also exposes no address of its memory to the host: section offsets
-   are passed in by value through `rb_section_push`, so no code outside the module can read
-   or write the module's state. The only writable surface is the four integer arguments of
-   the exported functions.
+   memory, and the host cannot address that memory unless the module exports it. This
+   module does not: the linker's default memory export is removed after every link, and
+   `module_check.js` fails the build if any memory, table, or global export is present.
+   Section offsets are passed in by value through `rb_section_push`, so no code outside
+   the module can read or write the module's state. The only writable surface is the
+   integer arguments of the exported functions.
 3. **By verification.** The build produces a second, instrumented module compiled with
    `-fsanitize=undefined,bounds -fsanitize-trap=all`. Every detected undefined behavior or
    out-of-bounds access becomes a wasm trap. The full vector set, including adversarial
@@ -225,6 +230,19 @@ darkening the gold used for small text and raising several dim labels; (5) a mai
 runbook (MAINTAIN.md) was added so the integrity word and verifier stay in step when the
 record changes.
 
+**Round 4 (self-audit).** A review of the shipped binary, rather than the source, found
+that the claims of the third round held at the source and not at the module boundary.
+wasm-ld exports linear memory by default, so the module carried an export named `memory`
+that handed the host every byte of module state. A host script could write the stored
+built-in test result directly and the page would report `BIT NOMINAL` without the test
+having run. That contradicted the sandbox claim above, the AV Rule 207 encapsulation
+comment in the source, and the AV Rule 215 row's statement about pointers into module
+memory. No JSF AV rule was broken: the standard governs the C++ source, and the export is
+a linker artifact. The source was not changed. The fix is in the build: linear memory is
+now fixed at 2 pages with no room to grow, a post-link step removes the memory export, and
+a seventh gate (`module_check.js`) reads the binary on every build and fails if any of
+those properties is lost. The built-in test and the integrity word are unchanged.
+
 ## Reproducing the verification
 
 ```powershell
@@ -233,6 +251,6 @@ $env:WASI_SDK = "<path to wasi-sdk>"
 ```
 
 The script compiles the shipped module with the full fatal-diagnostics flag set, runs static
-analysis, builds and runs the instrumented memory-safety module, then runs the verification
-harness against the shipped module. The page itself re-runs the module's built-in test on
+analysis, builds and runs the instrumented memory-safety module, runs the module interface
+gate, then runs the verification harness against the shipped module. The page itself re-runs the module's built-in test on
 every load; the result is in the top-right corner of the masthead.
