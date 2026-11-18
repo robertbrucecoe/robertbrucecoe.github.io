@@ -80,6 +80,7 @@
   html { scroll-behavior: smooth; scroll-padding-top: calc(var(--strip-h) + 24px); }
 
   body {
+    overflow-x: clip;
     background: var(--paper);
     color: var(--ink);
     font-family: 'Source Serif 4', Georgia, serif;
@@ -696,6 +697,7 @@
   /* ────────────────────────── PRINT ────────────────────────── */
   @media print {
     .strip, .rail, .actions { display: none; }
+    html.js .reveal { opacity: 1; transform: none; transition: none; }
     body { background: white; }
     .hero { padding-top: 40px; }
     .colophon { background: white; color: var(--slate); border-top: 1px solid var(--hairline); }
@@ -709,7 +711,7 @@
 <body>
 
 <!-- ═══════════════ STATUS STRIP ═══════════════ -->
-<div class="strip" role="status" aria-label="System status">
+<div class="strip">
   <span class="seg">
     <span class="sys">RBC-1</span>
     <span class="strip-title">ROBERT COE · RESUME SYSTEM</span>
