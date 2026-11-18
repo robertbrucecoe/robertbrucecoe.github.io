@@ -233,6 +233,10 @@ worth stating plainly.
   fail on a deliberately broken input before it was accepted, and the fault-injection and
   coverage gates re-prove the built-in test on every build. The other gates have no
   standing set of bad inputs run against them.
+- **The pinned downloads are checked against hashes this project recorded.** The
+  wasi-sdk and Chrome SHA-256 values in `verify.yml` were computed from the archives CI
+  downloaded, not taken from a digest the publisher signed. The check proves every later
+  build uses the same archive; it does not prove that archive was the publisher's.
 - **`build/build.ps1` mirrors `build/build.sh` but CI does not run it.** CI and every
   result in this document come from the Linux script.
 - **This matrix covers the verifiable shall and will rules** relevant to a module of this
