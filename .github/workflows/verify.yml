@@ -1,8 +1,10 @@
 # Continuous verification for the RBC-1 logic module and the page's quality gates.
 # Every pull request, and every deploy (.github/workflows/deploy.yml calls this file),
-# rebuilds the module from source with the pinned toolchain and runs all seven gates;
-# the committed binary must pass the same functional verification as the rebuild. The
-# print job renders the resume PDF with a pinned Chrome and gates it. A red X here means
+# rebuilds the module from source with the pinned toolchain and runs every gate in
+# build/build.sh; the committed binary must be byte-identical to the rebuild and pass the
+# same functional verification. The print job renders the resume PDF with a pinned Chrome
+# and gates it, then loads the page with a corrupted module and checks that the built-in
+# test fault withholds every computed value. A red X here means
 # the masthead's claims are no longer backed.
 name: verify
 
@@ -92,6 +94,10 @@ jobs:
 
       - name: Print gate
         run: node build/pdf_check.js resume.pdf
+
+      - name: Page fault gate (a built-in test fault withholds every computed value)
+        run: |
+          CHROME=~/chrome/chrome-headless-shell-linux64/chrome-headless-shell node build/page_fault_check.js
 
       - name: Show the printed layout
         if: always()

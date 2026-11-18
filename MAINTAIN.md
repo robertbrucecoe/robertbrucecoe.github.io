@@ -40,20 +40,26 @@ Download PDF serves `resume.pdf`, which is not in the repository. CI renders it 
 
 ## Changing dated facts (toolchain needed)
 
-The role dates, the role list, and the identity line live in `src/Resume_core.cpp` in two
-places that must agree:
+The role dates, the role list, and the identity line live in three places that must agree,
+and the build checks that they do (`build/record_check.js`):
 
-1. `canonical_record` (the string the CRC covers)
-2. `role_table` (the dates the duration math uses)
+1. `canonical_record` in `src/Resume_core.cpp` (the string the CRC covers)
+2. `role_table` in the same file (the dates the duration math uses)
+3. the date line of each role in `index.html` (the dates a reader sees)
+
+The recorded CRC-32 of the record appears twice and must match the record:
+`record_crc_expected` in `src/Resume_core.cpp`, which the built-in test checks on every
+load, and `EXPECTED_CRC` in `build/verify.js`.
 
 Procedure:
 
 1. Get the toolchain once: download a `wasi-sdk` release for your platform from
    `github.com/WebAssembly/wasi-sdk/releases` (CI pins major version 33; match it) and
    unpack it anywhere.
-2. Edit both `canonical_record` and `role_table` so they agree. If you add or remove a
-   role, update `role_table_size` and the role indices used by `index.html`
-   (`data-role="N"`) and any known-answer values in `run_built_in_test`.
+2. Edit `canonical_record`, `role_table`, and the page's date lines so they agree. If you
+   add or remove a role, update `role_table_size` and the role indices used by
+   `index.html` (`data-role="N"`). The built-in test vectors do not depend on the record,
+   so they need no change.
 3. Build:
    - Windows: `$env:WASI_SDK = "<sdk path>"; .\build\build.ps1`
    - Linux or Mac: `WASI_SDK=<sdk path> bash build/build.sh --update`
@@ -61,20 +67,26 @@ Procedure:
    On Windows the script always writes `resume_core.wasm`. On Linux or Mac, `--update`
    does the same, but only after every gate has passed on the rebuild. Without it the
    script checks your committed binary and leaves it alone, which is what CI does.
-4. The verifier will FAIL on the integrity word and print the actual new CRC. That is the
-   procedure working, not breaking: the record changed, so its checksum changed.
-5. Copy the new value into `EXPECTED_CRC` at the top of `build/verify.js`, and update the
-   CRC mentioned in `STANDARD.md` if you care about it matching.
+4. The record agreement gate will FAIL on the recorded CRC and print the new one. That is
+   the procedure working, not breaking: the record changed, so its checksum changed.
+5. Copy the new value into `record_crc_expected` in `src/Resume_core.cpp` (with its `U`
+   suffix) and into `EXPECTED_CRC` at the top of `build/verify.js`. If you skip the
+   source copy, the built-in test reports `BIT FAULT 32` and the page withholds every
+   computed value, which is what it should do with a record it cannot vouch for.
 6. Build again. All gates must pass.
-7. Commit `src/`, `resume_core.wasm`, and `build/verify.js` together. Push. CI rebuilds
-   from source and must agree with the binary you committed.
+7. Commit `src/`, `index.html`, `resume_core.wasm`, and `build/verify.js` together. Push.
+   CI rebuilds from source and fails unless the binary you committed is byte-identical to
+   that rebuild.
 
 ## What the masthead states mean
 
 - `BIT NOMINAL` - the module loaded and every built-in test passed.
-- `BIT FAULT n` - the module loaded but a subsystem failed its known-answer test; `n` is a
-  bitmask defined by `Bit_condition` in `src/Resume_core.cpp`. The page content is still
-  complete; fix before the next push.
+- `BIT FAULT n` - the module loaded but the built-in test failed; `n` is a bitmask defined
+  by `Bit_condition` in `src/Resume_core.cpp` (1 CRC engine, 2 easing, 4 duration,
+  8 bounds, 32 record, 64 navigation, 128 clock). The page withholds the integrity word
+  and every computed value and shows its static content, which is still complete. A 128
+  alone means the visitor's device clock is outside 2026 to 2099; anything else, fix
+  before the next push.
 - `STATIC MODE` - scripting is off or `resume_core.wasm` failed to load. The page is fully
   readable; computed extras (badges, counters, live section indicator) are simply absent.
 

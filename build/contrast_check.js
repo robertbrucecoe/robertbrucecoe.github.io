@@ -1,4 +1,4 @@
-// contrast_check.js — WCAG 2.1 contrast gate for the palette in index.html.
+// contrast_check.js - WCAG 2.1 contrast gate for the palette in index.html.
 // Every pair listed here is a real text-on-background combination used by the page.
 // The gate enforces AA for normal text (4.5:1). Decorative hairlines and non-text
 // ornament are exempt by the spec and are not listed.

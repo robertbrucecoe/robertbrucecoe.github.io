@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
-# build.sh — CI twin of build.ps1. Same flags, same gates, same order.
+# build.sh - CI twin of build.ps1. Same flags, same gates, same order.
 # Requires WASI_SDK pointing at a wasi-sdk root (clang++, clang-tidy in bin/).
 #
 # Usage: bash build/build.sh            rebuild and verify; never touches resume_core.wasm
 #        bash build/build.sh --update   also replace resume_core.wasm with the rebuild,
 #                                       only after every gate has passed on the rebuild
-# CI runs without --update, so a stale committed binary still fails the build there.
+# CI runs without --update, so a stale committed binary fails the build there: the last
+# step requires the committed resume_core.wasm to be byte-identical to the rebuild.
 # build.ps1 always writes resume_core.wasm, which matches --update.
 set -euo pipefail
 
@@ -40,7 +41,7 @@ COMMON=(--target=wasm32 -std=c++03 -nostdlib -ffreestanding -fno-exceptions -fno
         -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion -Wshadow
         -Wold-style-cast -Werror)
 
-echo "[1/7] Compiling shipped module and removing the memory export..."
+echo "[1/9] Compiling shipped module and removing the memory export..."
 # CI rebuilds into a scratch directory and byte-compares against the committed binary,
 # so a stale or hand-edited resume_core.wasm in the repository is caught. The scratch
 # copy keeps the same filename because the wasm name section embeds it.
@@ -49,17 +50,23 @@ REBUILT="$SCRATCH/resume_core.wasm"
 "$CLANG" "${COMMON[@]}" -O2 -I "$INC" "${LINK[@]}" -o "$REBUILT" "$SRC"
 node "$ROOT/build/strip_memory_export.js" "$REBUILT" "$REBUILT"
 
-echo "[2/7] Style gate..."
+echo "[2/9] Style gate..."
 node "$ROOT/build/style_check.js"
 
-echo "[3/7] Contrast gate..."
+echo "[3/9] Contrast gate..."
 node "$ROOT/build/contrast_check.js"
 
-echo "[4/7] Static analysis (fatal outside the documented findings) and complexity..."
+echo "[4/9] Record agreement gate (record, role table, page dates, recorded CRC-32)..."
+node "$ROOT/build/record_check.js"
+
+echo "[5/9] Static analysis (fatal outside the documented findings) and complexity..."
 node "$ROOT/build/analysis_check.js" "$TIDY"
 node "$ROOT/build/complexity_check.js" "$CLANG"
 
-echo "[5/7] Memory-safety build and verification..."
+echo "[6/9] Built-in test fault injection (every injected fault detected by its own subsystem)..."
+node "$ROOT/build/bit_fault_check.js" "$CLANG"
+
+echo "[7/9] Memory-safety build and verification..."
 SAFE="$ROOT/resume_core.san.wasm"
 "$CLANG" "${COMMON[@]}" -O1 -fsanitize=undefined,bounds -fsanitize-trap=all \
   -I "$INC" "${LINK[@]}" -o "$SAFE" "$SRC"
@@ -67,10 +74,10 @@ node "$ROOT/build/strip_memory_export.js" "$SAFE" "$SAFE"
 node "$ROOT/build/verify.js" "$SAFE"
 rm -f "$SAFE"
 
-echo "[6/7] Module interface gate on the rebuilt module..."
+echo "[8/9] Module interface gate on the rebuilt module..."
 node "$ROOT/build/module_check.js" "$REBUILT"
 
-echo "[7/7] Built-in test on the rebuilt module..."
+echo "[9/9] Built-in test on the rebuilt module..."
 node "$ROOT/build/verify.js" "$REBUILT"
 
 if [ "$UPDATE" -eq 1 ]; then
@@ -83,11 +90,13 @@ node "$ROOT/build/module_check.js" "$OUT"
 node "$ROOT/build/verify.js" "$OUT"
 
 if cmp -s "$REBUILT" "$OUT"; then
-  echo "Reproducibility: committed resume_core.wasm is byte-identical to the CI rebuild."
+  echo "Reproducibility: committed resume_core.wasm is byte-identical to the rebuild."
+  rm -rf "$SCRATCH"
 else
-  echo "Reproducibility: committed wasm differs from CI rebuild (toolchain variance is" \
-       "possible across platforms); both passed full functional verification above."
+  rm -rf "$SCRATCH"
+  echo "  FAIL  Reproducibility: committed resume_core.wasm differs from the rebuild of the" \
+       "source. Rebuild with: WASI_SDK=<root> bash build/build.sh --update"
+  exit 1
 fi
-rm -rf "$SCRATCH"
 
 echo "Build complete. System nominal."

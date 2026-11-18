@@ -41,7 +41,8 @@ const headerFilter = ".*";
 // Each accepted finding is documented, with its mitigation, in STANDARD.md.
 const accepted = [
   { check: "bugprone-easily-swappable-parameters", fn: "clamp_int32", count: 1 },
-  { check: "bugprone-easily-swappable-parameters", fn: "months_inclusive", count: 2 }
+  { check: "bugprone-easily-swappable-parameters", fn: "months_inclusive", count: 2 },
+  { check: "bugprone-easily-swappable-parameters", fn: "crc_octet", count: 1 }
 ];
 
 if (!tidy) {
