@@ -1,6 +1,6 @@
 # Continuous verification for the RBC-1 logic module and the page's quality gates.
 # Every push and pull request rebuilds the module from source with the pinned
-# toolchain and runs all six gates; the committed binary must pass the same
+# toolchain and runs all seven gates; the committed binary must pass the same
 # functional verification as the rebuild. A red X here means the masthead's
 # claims are no longer backed.
 name: verify

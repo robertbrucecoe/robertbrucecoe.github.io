@@ -26,6 +26,12 @@ $exports = @(
 )
 $exportFlags = $exports | ForEach-Object { "-Wl,--export=$_" }
 
+# Link flags. --max-memory fixes the linear memory at 2 pages (128 KiB) with no room to
+# grow. wasm-ld exports the memory by default and has no switch to stop it, so every link
+# below is followed by strip_memory_export.js, which removes that one export entry.
+$linkFlags = @("-Wl,--no-entry", "-Wl,--max-memory=131072") + $exportFlags
+$strip = Join-Path $PSScriptRoot "strip_memory_export.js"
+
 # Shared compile flags. The diagnostics policy (every warning fatal) is part of the
 # project's AV Rule 218 conformance claim.
 $commonFlags = @(
@@ -38,25 +44,27 @@ $srcFile = Join-Path $root "src\Resume_core.cpp"
 $incDir  = Join-Path $root "src"
 $wasmOut = Join-Path $root "resume_core.wasm"
 
-Write-Host "[1/6] Compiling shipped module (ISO 14882 C++03, freestanding wasm32, all diagnostics fatal)..."
-& $clang @commonFlags -O2 -I $incDir "-Wl,--no-entry" @exportFlags -o $wasmOut $srcFile
+Write-Host "[1/7] Compiling shipped module (ISO 14882 C++03, freestanding wasm32, all diagnostics fatal)..."
+& $clang @commonFlags -O2 -I $incDir @linkFlags -o $wasmOut $srcFile
 if ($LASTEXITCODE -ne 0) { throw "Compilation failed." }
+node $strip $wasmOut $wasmOut
+if ($LASTEXITCODE -ne 0) { throw "Memory export removal failed." }
 
-Write-Host "[2/6] Style gate (AV Rules 9, 14, 41, 43, 126)..."
+Write-Host "[2/7] Style gate (AV Rules 9, 14, 41, 43, 126)..."
 node (Join-Path $PSScriptRoot "style_check.js")
 if ($LASTEXITCODE -ne 0) { throw "Style gate reported violations." }
 
-Write-Host "[3/6] Contrast gate (WCAG 2.1 AA)..."
+Write-Host "[3/7] Contrast gate (WCAG 2.1 AA)..."
 node (Join-Path $PSScriptRoot "contrast_check.js")
 if ($LASTEXITCODE -ne 0) { throw "Contrast gate reported failures." }
 
-Write-Host "[4/6] Static analysis (clang-tidy)..."
+Write-Host "[4/7] Static analysis (clang-tidy)..."
 & $tidy $srcFile `
   -checks="clang-analyzer-*,bugprone-*,cppcoreguidelines-avoid-goto,cppcoreguidelines-avoid-magic-numbers,readability-function-size,readability-function-cognitive-complexity,misc-no-recursion" `
   -quiet `
   -- --target=wasm32 -std=c++03 -nostdlib -ffreestanding -fno-exceptions -fno-rtti -I $incDir
 
-Write-Host "[5/6] Memory-safety build (UBSan + bounds, trap-on-violation) and verification..."
+Write-Host "[5/7] Memory-safety build (UBSan + bounds, trap-on-violation) and verification..."
 # A separate instrumented module. -fsanitize-trap routes every detected undefined behavior
 # or out-of-bounds access to a wasm `unreachable` trap, with no run-time library required,
 # so it is compatible with the freestanding target. Running the full vector set (including
@@ -65,13 +73,19 @@ Write-Host "[5/6] Memory-safety build (UBSan + bounds, trap-on-violation) and ve
 # verification. The shipped module from step 1 is the clean -O2 build; this one is a gate.
 $wasmSafe = Join-Path $root "resume_core.san.wasm"
 & $clang @commonFlags -O1 "-fsanitize=undefined,bounds" "-fsanitize-trap=all" `
-  -I $incDir "-Wl,--no-entry" @exportFlags -o $wasmSafe $srcFile
+  -I $incDir @linkFlags -o $wasmSafe $srcFile
 if ($LASTEXITCODE -ne 0) { throw "Memory-safety build failed to compile." }
+node $strip $wasmSafe $wasmSafe
+if ($LASTEXITCODE -ne 0) { throw "Memory export removal failed on the instrumented module." }
 node (Join-Path $PSScriptRoot "verify.js") $wasmSafe
 if ($LASTEXITCODE -ne 0) { throw "Memory-safety verification trapped or reported failures." }
 Remove-Item $wasmSafe -Force
 
-Write-Host "[6/6] Built-in test against shipped module (node)..."
+Write-Host "[6/7] Module interface gate (no imports, no memory export, fixed memory, no growth)..."
+node (Join-Path $PSScriptRoot "module_check.js") $wasmOut
+if ($LASTEXITCODE -ne 0) { throw "Module interface gate reported failures." }
+
+Write-Host "[7/7] Built-in test against shipped module (node)..."
 node (Join-Path $PSScriptRoot "verify.js") $wasmOut
 if ($LASTEXITCODE -ne 0) { throw "Built-in test reported failures." }
 
