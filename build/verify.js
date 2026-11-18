@@ -31,8 +31,27 @@ function crcHex(e) {
 
 const crcOctetCount = 4;
 
+// With RBC_TRACE set to a file path, every call into the module is recorded there as
+// [export name, arguments, result], in order. build/coverage_check.js replays that exact
+// sequence against an instrumented native build of the same source, so the coverage it
+// reports is the coverage of this harness, not of a second copy of its vectors.
+const tracePath = process.env.RBC_TRACE || "";
+const trace = [];
+function traced(exports) {
+  const wrapped = {};
+  Object.keys(exports).forEach((name) => {
+    const f = exports[name];
+    wrapped[name] = (typeof f !== "function") ? f : (...args) => {
+      const result = f(...args);
+      trace.push([name, args, result]);
+      return result;
+    };
+  });
+  return wrapped;
+}
+
 WebAssembly.instantiate(fs.readFileSync(wasmPath)).then(({ instance }) => {
-  const e = instance.exports;
+  const e = tracePath ? traced(instance.exports) : instance.exports;
 
   // Before initialization the module must report that it has not run its test.
   check("BIT status before rb_init (16 = not initialized)", e.rb_bit_status(), 16);
@@ -96,6 +115,7 @@ WebAssembly.instantiate(fs.readFileSync(wasmPath)).then(({ instance }) => {
   check("section table accepts up to capacity", acceptedAll, true);
   check("section table rejects beyond capacity (no overrun)", rejectedPastCapacity, true);
 
+  if (tracePath) { fs.writeFileSync(tracePath, JSON.stringify(trace)); }
   console.log(failures === 0 ? "All checks passed." : `${failures} check(s) FAILED.`);
   process.exit(failures === 0 ? 0 : 1);
 });

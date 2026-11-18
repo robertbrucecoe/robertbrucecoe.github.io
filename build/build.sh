@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # build.sh - CI twin of build.ps1. Same flags, same gates, same order.
-# Requires WASI_SDK pointing at a wasi-sdk root (clang++, clang-tidy in bin/).
+# Requires WASI_SDK pointing at a wasi-sdk root (clang++, clang-tidy in bin/), and g++ and
+# gcov on the path for the structural coverage gate.
 #
 # Usage: bash build/build.sh            rebuild and verify; never touches resume_core.wasm
 #        bash build/build.sh --update   also replace resume_core.wasm with the rebuild,
@@ -41,7 +42,7 @@ COMMON=(--target=wasm32 -std=c++03 -nostdlib -ffreestanding -fno-exceptions -fno
         -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion -Wshadow
         -Wold-style-cast -Werror)
 
-echo "[1/9] Compiling shipped module and removing the memory export..."
+echo "[1/10] Compiling shipped module and removing the memory export..."
 # CI rebuilds into a scratch directory and byte-compares against the committed binary,
 # so a stale or hand-edited resume_core.wasm in the repository is caught. The scratch
 # copy keeps the same filename because the wasm name section embeds it.
@@ -50,23 +51,23 @@ REBUILT="$SCRATCH/resume_core.wasm"
 "$CLANG" "${COMMON[@]}" -O2 -I "$INC" "${LINK[@]}" -o "$REBUILT" "$SRC"
 node "$ROOT/build/strip_memory_export.js" "$REBUILT" "$REBUILT"
 
-echo "[2/9] Style gate..."
+echo "[2/10] Style gate..."
 node "$ROOT/build/style_check.js"
 
-echo "[3/9] Contrast gate..."
+echo "[3/10] Contrast gate..."
 node "$ROOT/build/contrast_check.js"
 
-echo "[4/9] Record agreement gate (record, role table, page dates, recorded CRC-32)..."
+echo "[4/10] Record agreement gate (record, role table, page dates, recorded CRC-32)..."
 node "$ROOT/build/record_check.js"
 
-echo "[5/9] Static analysis (fatal outside the documented findings) and complexity..."
+echo "[5/10] Static analysis (fatal outside the documented findings) and complexity..."
 node "$ROOT/build/analysis_check.js" "$TIDY"
 node "$ROOT/build/complexity_check.js" "$CLANG"
 
-echo "[6/9] Built-in test fault injection (every injected fault detected by its own subsystem)..."
+echo "[6/10] Built-in test fault injection (every injected fault detected by its own subsystem)..."
 node "$ROOT/build/bit_fault_check.js" "$CLANG"
 
-echo "[7/9] Memory-safety build and verification..."
+echo "[7/10] Memory-safety build and verification..."
 SAFE="$ROOT/resume_core.san.wasm"
 "$CLANG" "${COMMON[@]}" -O1 -fsanitize=undefined,bounds -fsanitize-trap=all \
   -I "$INC" "${LINK[@]}" -o "$SAFE" "$SRC"
@@ -74,11 +75,14 @@ node "$ROOT/build/strip_memory_export.js" "$SAFE" "$SAFE"
 node "$ROOT/build/verify.js" "$SAFE"
 rm -f "$SAFE"
 
-echo "[8/9] Module interface gate on the rebuilt module..."
+echo "[8/10] Module interface gate on the rebuilt module..."
 node "$ROOT/build/module_check.js" "$REBUILT"
 
-echo "[9/9] Built-in test on the rebuilt module..."
+echo "[9/10] Built-in test on the rebuilt module..."
 node "$ROOT/build/verify.js" "$REBUILT"
+
+echo "[10/10] Structural coverage: every line and branch outcome exercised (needs g++, gcov)..."
+node "$ROOT/build/coverage_check.js" "$REBUILT"
 
 if [ "$UPDATE" -eq 1 ]; then
   cp "$REBUILT" "$OUT"

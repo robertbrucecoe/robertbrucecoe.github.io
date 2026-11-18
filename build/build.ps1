@@ -44,35 +44,35 @@ $srcFile = Join-Path $root "src\Resume_core.cpp"
 $incDir  = Join-Path $root "src"
 $wasmOut = Join-Path $root "resume_core.wasm"
 
-Write-Host "[1/9] Compiling shipped module (ISO 14882 C++03, freestanding wasm32, all diagnostics fatal)..."
+Write-Host "[1/10] Compiling shipped module (ISO 14882 C++03, freestanding wasm32, all diagnostics fatal)..."
 & $clang @commonFlags -O2 -I $incDir @linkFlags -o $wasmOut $srcFile
 if ($LASTEXITCODE -ne 0) { throw "Compilation failed." }
 node $strip $wasmOut $wasmOut
 if ($LASTEXITCODE -ne 0) { throw "Memory export removal failed." }
 
-Write-Host "[2/9] Style gate (AV Rules 9, 14, 41, 43, 126)..."
+Write-Host "[2/10] Style gate (AV Rules 9, 14, 41, 43, 126)..."
 node (Join-Path $PSScriptRoot "style_check.js")
 if ($LASTEXITCODE -ne 0) { throw "Style gate reported violations." }
 
-Write-Host "[3/9] Contrast gate (WCAG 2.1 AA)..."
+Write-Host "[3/10] Contrast gate (WCAG 2.1 AA)..."
 node (Join-Path $PSScriptRoot "contrast_check.js")
 if ($LASTEXITCODE -ne 0) { throw "Contrast gate reported failures." }
 
-Write-Host "[4/9] Record agreement gate (record, role table, page dates, recorded CRC-32)..."
+Write-Host "[4/10] Record agreement gate (record, role table, page dates, recorded CRC-32)..."
 node (Join-Path $PSScriptRoot "record_check.js")
 if ($LASTEXITCODE -ne 0) { throw "Record, role table, page dates and recorded CRC-32 disagree." }
 
-Write-Host "[5/9] Static analysis (clang-tidy, fatal outside the documented findings) and complexity..."
+Write-Host "[5/10] Static analysis (clang-tidy, fatal outside the documented findings) and complexity..."
 node (Join-Path $PSScriptRoot "analysis_check.js") $tidy
 if ($LASTEXITCODE -ne 0) { throw "Static analysis reported findings outside the accepted list." }
 node (Join-Path $PSScriptRoot "complexity_check.js") $clang
 if ($LASTEXITCODE -ne 0) { throw "A function exceeds the cyclomatic complexity limit (AV Rule 3)." }
 
-Write-Host "[6/9] Built-in test fault injection (every injected fault detected by its own subsystem)..."
+Write-Host "[6/10] Built-in test fault injection (every injected fault detected by its own subsystem)..."
 node (Join-Path $PSScriptRoot "bit_fault_check.js") $clang
 if ($LASTEXITCODE -ne 0) { throw "The built-in test missed or misreported an injected fault." }
 
-Write-Host "[7/9] Memory-safety build (UBSan + bounds, trap-on-violation) and verification..."
+Write-Host "[7/10] Memory-safety build (UBSan + bounds, trap-on-violation) and verification..."
 # A separate instrumented module. -fsanitize-trap routes every detected undefined behavior
 # or out-of-bounds access to a wasm `unreachable` trap, with no run-time library required,
 # so it is compatible with the freestanding target. Running the full vector set (including
@@ -89,13 +89,25 @@ node (Join-Path $PSScriptRoot "verify.js") $wasmSafe
 if ($LASTEXITCODE -ne 0) { throw "Memory-safety verification trapped or reported failures." }
 Remove-Item $wasmSafe -Force
 
-Write-Host "[8/9] Module interface gate (no imports, no memory export, fixed memory, no growth)..."
+Write-Host "[8/10] Module interface gate (no imports, no memory export, fixed memory, no growth)..."
 node (Join-Path $PSScriptRoot "module_check.js") $wasmOut
 if ($LASTEXITCODE -ne 0) { throw "Module interface gate reported failures." }
 
-Write-Host "[9/9] Built-in test against shipped module (node)..."
+Write-Host "[9/10] Built-in test against shipped module (node)..."
 node (Join-Path $PSScriptRoot "verify.js") $wasmOut
 if ($LASTEXITCODE -ne 0) { throw "Built-in test reported failures." }
+
+Write-Host "[10/10] Structural coverage: every line and branch outcome exercised..."
+# The coverage gate measures a native build with gcc's instrumentation, so it needs g++
+# and gcov (MinGW or MSYS2 on Windows). Without them this step is skipped here and says
+# so; CI runs it on every pull request and every deploy, and nothing is published unless
+# it passes.
+if ((Get-Command g++ -ErrorAction SilentlyContinue) -and (Get-Command gcov -ErrorAction SilentlyContinue)) {
+  node (Join-Path $PSScriptRoot "coverage_check.js") $wasmOut
+  if ($LASTEXITCODE -ne 0) { throw "Structural coverage gate reported gaps." }
+} else {
+  Write-Host "  SKIPPED  g++ and gcov not found; CI runs the coverage gate before anything is published."
+}
 
 $size = (Get-Item $wasmOut).Length
 Write-Host "Build complete. resume_core.wasm = $size bytes. System nominal."
