@@ -26,7 +26,7 @@ namespace Rbc                                                                  /
   extern "C"
   {
     // rb_init
-    // Purpose:      Power-on initialization and continuous built-in test (BIT) of the module,
+    // Purpose:      Power-on initialization and built-in test (BIT) of the module,
     //               mirroring the power-on self-test discipline of avionics line-replaceable
     //               units. Computes the CRC-32 of the canonical resume record and verifies
     //               every computational subsystem against known-answer tests.
