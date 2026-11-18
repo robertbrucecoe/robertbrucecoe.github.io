@@ -12,10 +12,31 @@ inside the C++ do.
 ## Changing page content (no toolchain needed)
 
 Job bullets, honors, education, competencies, styling, wording: edit `index.html`, commit,
-push. GitHub Pages redeploys automatically. The integrity word does not cover the HTML, so
-it does not change. The CI workflow will still run and must stay green; it checks the page
-for third-party references and the palette for contrast, so if you add a remote font,
-script, or a low-contrast color, CI fails on purpose.
+push. The deploy workflow runs every gate and then publishes the site; if a gate fails,
+nothing is published. The integrity word does not cover the HTML, so it does not change.
+CI checks the page for third-party references and the palette for contrast, so if you add
+a remote font, script, or a low-contrast color, CI fails on purpose.
+
+## The printed resume
+
+Download PDF serves `resume.pdf`, which is not in the repository. CI renders it from
+`index.html` on every deploy and on the 1st of each month, reads it back with
+`build/pdf_check.js`, and publishes it only if it passes. Edit the page, not a PDF.
+
+- The print layout is the `@media print` block at the end of the stylesheet. It is written
+  in points and inches only. Keep it that way: a size in `vw`, or anything wider than the
+  paper, makes browsers shrink the whole page to fit.
+- If you add a role, bullet, or section, the print gate checks it appears in the PDF. If
+  the PDF grows past 3 pages, the gate fails; tighten the print block or raise `maxPages`
+  in `build/pdf_check.js` deliberately.
+- The renderer is pinned in `.github/workflows/verify.yml` (`CHROME_VERSION`,
+  `CHROME_SHA256`). To move it, change both together, the same way as the wasi-sdk pin.
+- To render locally: `CHROME=<path to chrome> bash build/print_pdf.sh resume.pdf`, then
+  `node build/pdf_check.js resume.pdf` (needs poppler-utils).
+- GitHub pauses scheduled workflows in a repository with no activity for 60 days. If the
+  months in the PDF stop advancing, run the deploy workflow by hand from the Actions tab.
+- The site is published by GitHub Actions: Settings > Pages > Source must stay on
+  GitHub Actions.
 
 ## Changing dated facts (toolchain needed)
 

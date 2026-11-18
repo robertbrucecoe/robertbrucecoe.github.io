@@ -1,0 +1,64 @@
+# Publishes the site to GitHub Pages. Nothing is published unless every gate in
+# verify.yml passes first, the print gate included, and the PDF published is the one that
+# gate read. The monthly run re-renders the PDF so the durations computed into it stay
+# current; the page itself computes them on every visit.
+#
+# Requires Settings > Pages > Build and deployment > Source: GitHub Actions.
+name: deploy
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    # 08:17 UTC on the 1st is 01:17 or 02:17 in Laramie, after the month has turned there.
+    - cron: "17 8 1 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    uses: ./.github/workflows/verify.yml
+
+  build:
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Take the gated PDF
+        uses: actions/download-artifact@v4
+        with:
+          name: resume-pdf
+          path: gated
+
+      - name: Assemble the site
+        run: |
+          # The page and what it loads. The source and documents stay in the repository,
+          # which the page links to.
+          mkdir _site
+          cp index.html resume_core.wasm _site/
+          cp -R fonts _site/
+          cp gated/resume.pdf _site/resume.pdf
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
