@@ -38,11 +38,13 @@ const pointsPerInch = 72;
 const maxPages = 3;
 // The text must reach to within this fraction of the printable width from the right margin.
 const minWidthUse = 0.9;
-// Scale window for median word height over declared body size. Calibration: the shrunken
-// print that prompted this gate (Chrome on Windows, laid out at desktop width and scaled to
-// the paper) measures 0.65. A print at its declared size measures above 1.1.
-const minScale = 1.1;
-const maxScale = 1.6;
+// Scale window for median word height over declared body size. Calibration, both measured
+// with this gate: the pinned renderer printing at the declared size measures 1.66. The
+// shrunken print that prompted this gate (Chrome on a Windows laptop, laid out at desktop
+// width and scaled onto the paper) measures 0.79. The window fails any shrink past about
+// 13 percent.
+const minScale = 1.45;
+const maxScale = 1.9;
 // Slack, in points, for glyph overhang past a margin line.
 const edgeTolerance = 1.5;
 
@@ -154,10 +156,11 @@ check("every page is US Letter", sizes.length === pages && sizes.every((s) =>
 
 const bboxHtml = run("pdftotext", ["-bbox", pdfPath, "-"]);
 const words = [];
-const wordRe = /<word xMin="([0-9.]+)" yMin="([0-9.]+)" xMax="([0-9.]+)" yMax="([0-9.]+)">/g;
+const wordRe = /<word xMin="([0-9.]+)" yMin="([0-9.]+)" xMax="([0-9.]+)" yMax="([0-9.]+)">([^<]*)<\/word>/g;
 let wm = wordRe.exec(bboxHtml);
 while (wm) {
-  words.push({ x0: Number(wm[1]), y0: Number(wm[2]), x1: Number(wm[3]), y1: Number(wm[4]) });
+  words.push({ x0: Number(wm[1]), y0: Number(wm[2]), x1: Number(wm[3]), y1: Number(wm[4]),
+    text: decodeEntities(wm[5]) });
   wm = wordRe.exec(bboxHtml);
 }
 check("PDF has extractable text", words.length > 0, `${words.length} words`);
@@ -168,6 +171,10 @@ const outside = words.filter((w) =>
   w.y0 < printable.top - edgeTolerance || w.y1 > printable.bottom + edgeTolerance);
 check("every word inside the page margins", outside.length === 0,
   `${outside.length} outside`);
+outside.slice(0, 8).forEach((w) => {
+  console.log(`        outside: "${w.text}" x ${w.x0.toFixed(1)} to ${w.x1.toFixed(1)}, ` +
+    `y ${w.y0.toFixed(1)} to ${w.y1.toFixed(1)}`);
+});
 
 const minX = Math.min(...words.map((w) => w.x0));
 const maxX = Math.max(...words.map((w) => w.x1));
@@ -193,7 +200,9 @@ check("every heading, title, and bullet present", missing.length === 0,
   `${expected.length - missing.length} of ${expected.length}`);
 missing.forEach((t) => { console.log(`        missing: ${t.slice(0, 90)}`); });
 
-const computed = (rawText.match(/COMPUTED/g) || []).length;
+// A badge reads like "3 YRS 7 MOS · COMPUTED". Matching on the unit before the word keeps
+// the stat label "computed live" out of the count.
+const computed = (pdfKey.match(/(yrs?|mos?)computed/g) || []).length;
 check("one COMPUTED badge per role", roleCount > 0 && computed === roleCount,
   `${computed} badges, ${roleCount} roles`);
 check("self test reads NOMINAL", /\bNOMINAL\b/.test(rawText));

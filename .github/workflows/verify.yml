@@ -98,7 +98,11 @@ jobs:
         run: |
           test -s resume.pdf || exit 0
           pdfinfo resume.pdf
-          pdftotext -layout resume.pdf -
+          pages=$(pdfinfo resume.pdf | awk '/^Pages:/ {print $2}')
+          for p in $(seq 1 "$pages"); do
+            echo "=================== page $p ==================="
+            pdftotext -layout -f "$p" -l "$p" resume.pdf -
+          done
 
       - name: Keep the PDF
         if: always()
