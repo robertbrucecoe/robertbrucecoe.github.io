@@ -19,7 +19,7 @@ env:
   # The renderer for the printed resume: Chrome for Testing's headless shell, pinned by
   # version and checked against the SHA-256 of its archive the same way.
   CHROME_VERSION: "153.0.8010.12"
-  CHROME_SHA256: "0000000000000000000000000000000000000000000000000000000000000000"
+  CHROME_SHA256: "a9da028861a0cf789ff25c2fed45f5f1aaf969ed9247835b6a7821a4f7af9d1d"
 
 jobs:
   verify:
